@@ -1,7 +1,9 @@
 # Modification of the Trainer class:
 # * Adapting for distillation
 # * Removing unnecessary functionality (FP16 with APEX, DeepSpeed, ApexAmazon SageMaker, Hub, TPU etc.)
+# * Log multiple losses (loss_total, loss_qa, loss_distil)
 # Source: https://github.com/huggingface/transformers/blob/v4.17.0/src/transformers/trainer.py#L199
+
 import os
 import sys
 import math
@@ -168,15 +170,13 @@ class SQUADTrainer(Trainer):
                 self._move_model_to_device(teacher_model, self.args.device)
                 self.teacher_model = teacher_model
 
-        # later use `self.model is self.model_wrapped` to check if it's wrapped or not
-        self.model_wrapped = model
         self.model = model
 
         self.compute_metrics = compute_metrics
         self.preprocess_logits_for_metrics = preprocess_logits_for_metrics
         self.optimizer, self.lr_scheduler = optimizers
         
-        default_callbacks = [DefaultFlowCallback, get_reporting_integration_callbacks(self.args.report_to)]
+        default_callbacks = [DefaultFlowCallback] + get_reporting_integration_callbacks(self.args.report_to)
         callbacks = default_callbacks if callbacks is None else default_callbacks + callbacks
         self.callback_handler = CallbackHandler(
             callbacks, self.model, self.tokenizer, self.optimizer, self.lr_scheduler
@@ -234,6 +234,12 @@ class SQUADTrainer(Trainer):
         # very last
         self._memory_tracker.stop_and_update_metrics()
 
+        self.loss_names = ["loss_total", "loss_qa"]
+        self.do_distil = False
+        if teacher_model is not None:
+            self.loss_names += ["loss_distil"]
+            self.do_distil = True            
+
     def train(
         self,
         resume_from_checkpoint: Optional[Union[str, bool]] = None,
@@ -278,16 +284,6 @@ class SQUADTrainer(Trainer):
         # This might change the seed so needs to run first.
         self._hp_search_setup(trial)
 
-        # Model re-init
-        model_reloaded = False
-        if self.model_init is not None:
-            # Seed must be set before instantiating the model when using model_init.
-            set_seed(args.seed)
-            self.model = self.call_model_init(trial)
-            model_reloaded = True
-            # Reinitializes optimizer and scheduler
-            self.optimizer, self.lr_scheduler = None, None
-
         # Load potential model checkpoint
         if isinstance(resume_from_checkpoint, bool) and resume_from_checkpoint:
             resume_from_checkpoint = get_last_checkpoint(args.output_dir)
@@ -310,12 +306,6 @@ class SQUADTrainer(Trainer):
 
             # release memory
             del state_dict
-
-        # If model was re-initialized, put it on the right device and update self.model_wrapped
-        if model_reloaded:
-            if self.place_model_on_device:
-                self._move_model_to_device(self.model, args.device)
-            self.model_wrapped = self.model
 
         # Keeping track whether we can can len() on the dataset or not
         train_dataset_is_sized = has_length(self.train_dataset)
@@ -350,6 +340,8 @@ class SQUADTrainer(Trainer):
             num_train_epochs = sys.maxsize
             num_update_steps_per_epoch = max_steps
             num_train_samples = args.max_steps * total_train_batch_size
+        
+        self.create_optimizer_and_scheduler(num_training_steps=max_steps)
 
         self.state = TrainerState()
         self.state.is_hyper_param_search = trial is not None
@@ -358,18 +350,8 @@ class SQUADTrainer(Trainer):
         if args.gradient_checkpointing:
             self.model.gradient_checkpointing_enable()
 
-        model = self._wrap_model(self.model_wrapped)
-
-        # for the rest of this function `model` is the outside model, whether it was wrapped or not
-        if model is not self.model:
-            self.model_wrapped = model
-
         # Check if saved optimizer or scheduler states exist
         self._load_optimizer_and_scheduler(resume_from_checkpoint)
-
-        # important: at this point:
-        # self.model         is the Transformers Model
-        # self.model_wrapped is DDP(Transformers Model), Deepspeed(Transformers Model), etc.
 
         # Train!
         num_examples = (
@@ -433,12 +415,12 @@ class SQUADTrainer(Trainer):
         self.state.is_local_process_zero = self.is_local_process_zero()
         self.state.is_world_process_zero = self.is_world_process_zero()
 
-        # tr_loss is a tensor to avoid synchronization of TPUs through .item()
-        tr_loss = torch.tensor(0.0).to(args.device)
+        tr_loss_dict = {k : torch.tensor(0.0).to(args.device) for k in self.loss_names}
+
         # _total_loss_scalar is updated everytime .item() has to be called on tr_loss and stores the sum of all losses
-        self._total_loss_scalar = 0.0
+        self._total_loss_scalar_dict = {k : 0.0 for k in self.loss_names}
         self._globalstep_last_logged = self.state.global_step
-        model.zero_grad()
+        self.model.zero_grad()
 
         self.control = self.callback_handler.on_train_begin(args, self.state, self.control)
 
@@ -490,19 +472,20 @@ class SQUADTrainer(Trainer):
                     and args._no_sync_in_gradient_accumulation
                 ):
                     # Avoid unnecessary DDP synchronization since there will be no backward pass on this example.
-                    with model.no_sync():
-                        tr_loss_step = self.training_step(model, inputs)
+                    with self.model.no_sync():
+                        tr_loss_step_dict = self.training_step(model=self.model, teacher_model=self.teacher_model, inputs=inputs)
                 else:
-                    tr_loss_step = self.training_step(model, inputs)
+                    tr_loss_step_dict = self.training_step(model=self.model, teacher_model=self.teacher_model, inputs=inputs)
 
-                if (
-                    args.logging_nan_inf_filter
-                    and (torch.isnan(tr_loss_step) or torch.isinf(tr_loss_step))
-                ):
-                    # if loss is nan or inf simply add the average of previous logged losses
-                    tr_loss += tr_loss / (1 + self.state.global_step - self._globalstep_last_logged)
-                else:
-                    tr_loss += tr_loss_step
+                for loss_name in self.loss_names:
+                    if (
+                        args.logging_nan_inf_filter
+                        and (torch.isnan(tr_loss_step_dict[loss_name]) or torch.isinf(tr_loss_step_dict[loss_name]))
+                    ):
+                        # if loss is nan or inf simply add the average of previous logged losses
+                        tr_loss_dict[loss_name] += tr_loss_dict[loss_name] / (1 + self.state.global_step - self._globalstep_last_logged)
+                    else:
+                        tr_loss_dict[loss_name] += tr_loss_step_dict[loss_name]
 
                 self.current_flos += float(self.floating_point_ops(inputs))
 
@@ -520,9 +503,9 @@ class SQUADTrainer(Trainer):
                         if hasattr(self.optimizer, "clip_grad_norm"):
                             # Some optimizers (like the sharded optimizer) have a specific way to do gradient clipping
                             self.optimizer.clip_grad_norm(args.max_grad_norm)
-                        elif hasattr(model, "clip_grad_norm_"):
+                        elif hasattr(self.model, "clip_grad_norm_"):
                             # Some models (like FullyShardedDDP) have a specific way to do gradient clipping
-                            model.clip_grad_norm_(args.max_grad_norm)
+                            self.model.clip_grad_norm_(args.max_grad_norm)
 
                     # Optimizer step
                     optimizer_was_run = True
@@ -538,12 +521,12 @@ class SQUADTrainer(Trainer):
                     if optimizer_was_run:
                         self.lr_scheduler.step()
 
-                    model.zero_grad()
+                    self.model.zero_grad()
                     self.state.global_step += 1
                     self.state.epoch = epoch + (step + 1) / steps_in_epoch
                     self.control = self.callback_handler.on_step_end(args, self.state, self.control)
 
-                    self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
+                    self._maybe_log_save_evaluate(tr_loss_dict, self.model, trial, epoch, ignore_keys_for_eval)
                 else:
                     self.control = self.callback_handler.on_substep_end(args, self.state, self.control)
 
@@ -558,7 +541,7 @@ class SQUADTrainer(Trainer):
                 self.control.should_training_stop = True
 
             self.control = self.callback_handler.on_epoch_end(args, self.state, self.control)
-            self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
+            self._maybe_log_save_evaluate(tr_loss_dict, self.model, trial, epoch, ignore_keys_for_eval)
 
             if self.control.should_training_stop:
                 break
@@ -587,13 +570,16 @@ class SQUADTrainer(Trainer):
                 )
 
         # add remaining tr_loss
-        self._total_loss_scalar += tr_loss.item()
-        train_loss = self._total_loss_scalar / self.state.global_step
+        for loss_name in self.loss_names:
+            self._total_loss_scalar_dict[loss_name] += tr_loss_dict[loss_name].item()
 
         metrics = speed_metrics("train", start_time, num_samples=num_train_samples, num_steps=self.state.max_steps)
         self.store_flos()
         metrics["total_flos"] = self.state.total_flos
-        metrics["train_loss"] = train_loss
+        for loss_name in self.loss_names:
+            metrics[f"train_{loss_name}"] = self._total_loss_scalar_dict[loss_name] / self.state.global_step
+        
+        train_loss = metrics[f"train_loss_total"]
 
         self.is_in_train = False
 
@@ -605,52 +591,114 @@ class SQUADTrainer(Trainer):
 
         return TrainOutput(self.state.global_step, train_loss, metrics)
     
-    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+    def _maybe_log_save_evaluate(self, tr_loss_dict, model, trial, epoch, ignore_keys_for_eval):
+        if self.control.should_log:
+            logs: Dict[str, float] = {}
+
+            # all_gather + mean() to get average loss over all processes
+            tr_loss_scalar_dict = {}
+            for loss_name in self.loss_names:
+                tr_loss_scalar_dict[loss_name] = self._nested_gather(tr_loss_dict[loss_name]).mean().item()
+                
+                logs[loss_name] = round(tr_loss_scalar_dict[loss_name] / (self.state.global_step - self._globalstep_last_logged), 4)
+            
+            logs["learning_rate"] = self._get_learning_rate()
+
+            for loss_name in self.loss_names:
+                self._total_loss_scalar_dict[loss_name] += tr_loss_scalar_dict[loss_name]
+            self._globalstep_last_logged = self.state.global_step
+            self.store_flos()
+
+            self.log(logs)
+
+        metrics = None
+        if self.control.should_evaluate:
+            metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
+            self._report_to_hp_search(trial, epoch, metrics)
+
+        if self.control.should_save:
+            self._save_checkpoint(model, trial, metrics=metrics)
+            self.control = self.callback_handler.on_save(self.args, self.state, self.control)
+        
+        # reset tr_loss to zero
+        for loss_name in self.loss_names:
+            tr_loss_dict[loss_name] -= tr_loss_dict[loss_name]
+
+    def training_step(
+        self, 
+        model: nn.Module,
+        teacher_model: nn.Module=None,
+        inputs: Dict[str, Union[torch.Tensor, Any]]=None
+    ) -> Dict[str, torch.Tensor]:
         """
         Perform a training step on a batch of inputs.
         Subclass and override to inject custom behavior.
         Args:
             model (`nn.Module`):
                 The model to train.
+            teacher_model (`nn.Module`):
+                Trained model to use as a reference.
             inputs (`Dict[str, Union[torch.Tensor, Any]]`):
                 The inputs and targets of the model.
                 The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
                 argument `labels`. Check your model's documentation for all accepted arguments.
         Return:
-            `torch.Tensor`: The tensor with training loss on this batch.
+            `Dict[str, torch.Tensor]`: The dictionary of tensors with training losses on this batch.
         """
         model.train()
         inputs = self._prepare_inputs(inputs)
 
         with self.autocast_smart_context_manager():
-            loss = self.compute_loss(model, inputs)
+            loss_dict = self.compute_loss(model=model, teacher_model=teacher_model, inputs=inputs)
 
         if self.args.n_gpu > 1:
-            loss = loss.mean()  # mean() to average on multi-gpu parallel training
+            for k, v in loss_dict.items():
+                loss_dict[k] = v.mean()  # mean() to average on multi-gpu parallel training
 
         if self.args.gradient_accumulation_steps > 1:
-            loss = loss / self.args.gradient_accumulation_steps
+            for k, v in loss_dict.items():
+                loss_dict[k] /= self.args.gradient_accumulation_steps
 
         if self.do_grad_scaling:
-            self.scaler.scale(loss).backward()
+            self.scaler.scale(loss_dict["loss_total"]).backward()
         else:
-            loss.backward()
+            loss_dict["loss_total"].backward()
 
-        return loss.detach()
+        for k, v in loss_dict.items():
+            loss_dict[k] = v.detach()
 
-    def compute_loss(self, model, inputs, return_outputs=False):
-        loss = 0
+        return loss_dict
+
+    def compute_loss(
+        self,  
+        model: nn.Module,
+        teacher_model: nn.Module = None, 
+        inputs: Dict[str, Union[torch.Tensor, Any]] = None, 
+        return_outputs=False
+    ) -> Dict[str, torch.Tensor]:
+        """ Computes losses.
+
+        Args:
+            model (`nn.Module`): The model to train.
+            inputs (`Dict[str, Union[torch.Tensor, Any]]`): The inputs and targets of the model.
+            return_outputs (bool, optional): Whether to return the outputs. Defaults to False.
+
+        Returns:
+            `Dict[str, torch.Tensor]`: Dictionary of losses
+        """
+        loss_dict = dict()
 
         outputs = model(**inputs)
         loss_qa = outputs["loss"]
-        loss += loss_qa
+        loss_dict["loss_qa"] = loss_qa
+        loss_dict["loss_total"] = loss_qa
 
-        if self.teacher_model is not None:
+        if teacher_model is not None:
             log_softmax_fn = torch.nn.LogSoftmax(dim=-1)
             loss_distil_fn = torch.nn.KLDivLoss(reduction="batchmean", log_target=True)
 
             with torch.no_grad():
-                teacher_outputs = self.teacher_model(**inputs)
+                teacher_outputs = teacher_model(**inputs)
 
             start_log_inputs = log_softmax_fn(outputs["start_logits"])
             end_log_inputs = log_softmax_fn(outputs["end_logits"])
@@ -658,9 +706,107 @@ class SQUADTrainer(Trainer):
             start_log_targets = log_softmax_fn(teacher_outputs["start_logits"])
             end_log_targets = log_softmax_fn(teacher_outputs["end_logits"])
 
-            loss_distil = loss_distil_fn(start_log_inputs, start_log_targets) + \
-                          loss_distil_fn(end_log_inputs, end_log_targets)
+            loss_dict["loss_distil"] = loss_distil_fn(start_log_inputs, start_log_targets) + \
+                                       loss_distil_fn(end_log_inputs, end_log_targets)
+            loss_dict["loss_total"] = loss_dict["loss_qa"] + loss_dict["loss_distil"]
 
-            loss += loss_distil
+        return (loss_dict, outputs) if return_outputs else loss_dict
+    
+    def prediction_step(
+        self,
+        model: nn.Module,
+        inputs: Dict[str, Union[torch.Tensor, Any]],
+        prediction_loss_only: bool = True,
+        ignore_keys: Optional[List[str]] = None,
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """
+        Perform an evaluation step on `model` using `inputs`.
+        Subclass and override to inject custom behavior.
+        Args:
+            model (`nn.Module`):
+                The model to evaluate.
+            inputs (`Dict[str, Union[torch.Tensor, Any]]`):
+                The inputs and targets of the model.
+                The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
+                argument `labels`. Check your model's documentation for all accepted arguments.
+            prediction_loss_only (`bool`):
+                Whether or not to return the loss only.
+            ignore_keys (`Lst[str]`, *optional*):
+                A list of keys in the output of your model (if it is a dictionary) that should be ignored when
+                gathering predictions.
+        Return:
+            Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]: A tuple with the loss,
+            logits and labels (each being optional).
+        """
+        has_labels = all(inputs.get(k) is not None for k in self.label_names)
+        inputs = self._prepare_inputs(inputs)
+        if ignore_keys is None:
+            if hasattr(self.model, "config"):
+                ignore_keys = getattr(self.model.config, "keys_to_ignore_at_inference", [])
+            else:
+                ignore_keys = []
 
-        return (loss, outputs) if return_outputs else loss
+        # labels may be popped when computing the loss (label smoothing for instance) so we grab them first.
+        if has_labels:
+            labels = nested_detach(tuple(inputs.get(name) for name in self.label_names))
+            if len(labels) == 1:
+                labels = labels[0]
+        else:
+            labels = None
+
+        with torch.no_grad():
+            if has_labels:
+                with self.autocast_smart_context_manager():
+                    loss_dict, outputs = self.compute_loss(model=model, inputs=inputs, return_outputs=True)
+                loss = loss_dict["loss_total"].mean().detach()
+
+                if isinstance(outputs, dict):
+                    logits = tuple(v for k, v in outputs.items() if k not in ignore_keys + ["loss"])
+                else:
+                    logits = outputs[1:]
+            else:
+                loss = None
+                with self.autocast_smart_context_manager():
+                    outputs = model(**inputs)
+                if isinstance(outputs, dict):
+                    logits = tuple(v for k, v in outputs.items() if k not in ignore_keys)
+                else:
+                    logits = outputs
+                # TODO: this needs to be fixed and made cleaner later.
+                if self.args.past_index >= 0:
+                    self._past = outputs[self.args.past_index - 1]
+
+        if prediction_loss_only:
+            return (loss, None, None)
+
+        logits = nested_detach(logits)
+        if len(logits) == 1:
+            logits = logits[0]
+
+        return (loss, logits, labels)
+    
+    def create_optimizer(self):
+        """
+        Setup the optimizer.
+        We provide a reasonable default that works well. If you want to use something else, you can pass a tuple in the
+        Trainer's init through `optimizers`, or subclass and override this method in a subclass.
+        """
+        if self.optimizer is None:
+            decay_parameters = get_parameter_names(self.model, [nn.LayerNorm])
+            decay_parameters = [name for name in decay_parameters if "bias" not in name]
+            optimizer_grouped_parameters = [
+                {
+                    "params": [p for n, p in self.model.named_parameters() if n in decay_parameters],
+                    "weight_decay": self.args.weight_decay,
+                },
+                {
+                    "params": [p for n, p in self.model.named_parameters() if n not in decay_parameters],
+                    "weight_decay": 0.0,
+                },
+            ]
+
+            optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
+
+            self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)
+
+        return self.optimizer
