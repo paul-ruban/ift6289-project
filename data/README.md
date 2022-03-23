@@ -1,6 +1,12 @@
 ## Data related files and explanations
 
-* `data/squad_v1` - contains SQUAD 1.1 dataset
-* `data/squad_v2` - contains SQUAD 2.0 dataset
+There are two datasets **SQUAD** and **SQUAD2.0**.
+* `data/raw` - contains datasets with raw JSON files, the splits are already done
+* `data/from_hf` - contains configurations to load datasets using `datasets` library
 
-Both datasets are split into *train* and *dev* sets.
+### Usage
+
+```python
+from datasets import load_dataset
+squad = load_dataset("data/from_hf/squad")
+```
