@@ -22,7 +22,7 @@ def main():
     model = AutoModelForQuestionAnswering.from_pretrained(train_config.model)
     
     teacher_model = None
-    if train_config.teacher_model is None:
+    if train_config.teacher_model is not None:
         teacher_model = AutoModelForQuestionAnswering.from_pretrained(train_config.teacher_model)
     
     dataset = load_dataset(train_config.data_path)
