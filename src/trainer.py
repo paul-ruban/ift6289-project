@@ -164,6 +164,7 @@ class SQUADTrainer(Trainer):
         self.eval_dataset = eval_dataset
         self.tokenizer = tokenizer
 
+        self.teacher_model = None
         if self.place_model_on_device:
             self._move_model_to_device(model, args.device)
             if teacher_model is not None:
