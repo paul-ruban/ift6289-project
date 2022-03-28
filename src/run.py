@@ -1,8 +1,8 @@
 import argparse
 from functools import partial
-from src.config import TrainConfig
-from src.trainer import SQUADTrainer
-from src.data import preprocess_function
+from config import TrainConfig
+from trainer import SQUADTrainer
+from data import preprocess_function
 from datasets import load_dataset
 from transformers import (
     TrainingArguments, 
