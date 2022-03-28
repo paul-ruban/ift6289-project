@@ -1,4 +1,3 @@
-import json
 import argparse
 from functools import partial
 from src.config import TrainConfig
@@ -14,10 +13,10 @@ from transformers import (
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c',"--config", help="Config file.", required=True)
+    parser.add_argument("-c", "--config", help="Config file.", required=True)
     args = parser.parse_args()
 
-    train_config = TrainConfig.from_json(args.model)
+    train_config = TrainConfig.from_json(args.config)
 
     tokenizer = AutoTokenizer.from_pretrained(train_config.model)
     model = AutoModelForQuestionAnswering.from_pretrained(train_config.model)
@@ -48,7 +47,7 @@ def main():
     )
 
     trainer = SQUADTrainer(
-        model=train_config.model,
+        model=model,
         teacher_model=teacher_model,
         args=training_args,
         train_dataset=dataset["train"],

@@ -2,7 +2,7 @@
     "model": "distilbert-base-uncased",
     "teacher_model": null,
     "data_path": "squad",
-    "output_dir": "logs",
+    "output_dir": "../logs",
     "evaluation_strategy": "steps",
     "logging_steps": 1000,
     "learning_rate": 5e-5,
