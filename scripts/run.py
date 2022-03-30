@@ -4,7 +4,7 @@ import argparse
 from functools import partial
 from src.config import TrainConfig
 from src.trainer import SQUADTrainer # noqa: E501
-from data import preprocess_function
+from src.data import preprocess_function
 from datasets import load_dataset
 from transformers import (
     TrainingArguments, 
