@@ -15,6 +15,7 @@ class TrainConfig:
         per_device_eval_batch_size=16,
         num_train_epochs=10,
         weight_decay=0.01,
+        optim="adamw",
         disable_tqdm=True
     ):
         self.model = model
@@ -28,6 +29,7 @@ class TrainConfig:
         self.per_device_eval_batch_size = per_device_eval_batch_size
         self.num_train_epochs = num_train_epochs
         self.weight_decay = weight_decay
+        self.optim = optim
         self.disable_tqdm = disable_tqdm
     
     @classmethod

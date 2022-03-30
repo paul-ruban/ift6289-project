@@ -45,6 +45,7 @@ def main():
         per_device_eval_batch_size=train_config.per_device_eval_batch_size,
         num_train_epochs=train_config.num_train_epochs,
         weight_decay=train_config.weight_decay,
+        optim=train_config.optim,
         disable_tqdm=train_config.disable_tqdm
     )
 
