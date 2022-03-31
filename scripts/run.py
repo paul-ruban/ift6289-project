@@ -1,10 +1,11 @@
-# Usage: python run.py -c ../config/config.json
+# Usage: python run.py -c ../config/test.json
+# Debug: python -m debugpy --listen 5678 run.py -c ../config/test.json
 
 import argparse
 from functools import partial
 from src.config import TrainConfig
 from src.trainer import SQUADTrainer # noqa: E501
-from src.data import preprocess_function
+from src.data import preprocess_function, post_process_function
 from datasets import load_dataset, load_metric
 from transformers import (
     TrainingArguments, 
@@ -29,14 +30,13 @@ def main():
     
     dataset = load_dataset(train_config.data_path)
 
-    # Preprocess dataset
-    dataset = dataset.map(
-        partial(preprocess_function, tokenizer=tokenizer),
-        batched=True,
-        remove_columns=dataset["train"].column_names
-    )
+    remove_columns = dataset["train"].column_names + ["offset_mapping", "answer_texts", "tokenized_inputs"]
 
-    metric = load_metric(train_config.compute_metrics)
+    # Preprocess dataset
+    processed_dataset = dataset.map(
+        partial(preprocess_function, tokenizer=tokenizer),
+        batched=True
+    )
 
     training_args = TrainingArguments(
         output_dir=train_config.output_dir,
@@ -51,16 +51,25 @@ def main():
         disable_tqdm=train_config.disable_tqdm
     )
 
+    metric = load_metric(train_config.compute_metrics)
+
+    def compute_metrics(x):
+        return metric.compute(
+            predictions=x.predictions, 
+            references=x.label_ids)
+
+    dataset_for_training = processed_dataset.remove_columns(remove_columns)
+
     trainer = SQUADTrainer(
         model=model,
         teacher_model=teacher_model,
         args=training_args,
-        train_dataset=dataset["train"],
-        eval_dataset=dataset["validation"],
+        train_dataset=dataset_for_training["train"],
+        eval_dataset=dataset_for_training["validation"],
+        eval_dataset_reference=processed_dataset["validation"],
         tokenizer=tokenizer,
-        compute_metrics=lambda x: metric.compute(
-            predictions=x.predictions, 
-            references=x.label_ids)
+        compute_metrics=compute_metrics,
+        post_process_function=post_process_function
     )
 
     # Train model

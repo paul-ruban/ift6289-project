@@ -4,7 +4,7 @@
     "data_path": "squad",
     "output_dir": "../logs",
     "evaluation_strategy": "steps",
-    "logging_steps": 1000,
+    "logging_steps": 50,
     "learning_rate": 5e-5,
     "optim": "adamw_torch",
     "per_device_train_batch_size": 16,
@@ -12,5 +12,7 @@
     "num_train_epochs": 0.5,
     "weight_decay": 0.01,
     "disable_tqdm": true,
-    "compute_metrics": "squad"
+    "compute_metrics": "squad",
+    "do_train": true,
+    "do_eval": true
 }

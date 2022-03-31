@@ -17,7 +17,9 @@ class TrainConfig:
         weight_decay=0.01,
         optim="adamw",
         disable_tqdm=True,
-        compute_metrics=None
+        compute_metrics=None,
+        do_train=True,
+        do_eval=True
     ):
         self.model = model
         self.teacher_model = teacher_model
@@ -33,6 +35,8 @@ class TrainConfig:
         self.optim = optim
         self.disable_tqdm = disable_tqdm
         self.compute_metrics = compute_metrics
+        self.do_train = do_train
+        self.do_eval = do_eval
     
     @classmethod
     def from_json(cls, path):
