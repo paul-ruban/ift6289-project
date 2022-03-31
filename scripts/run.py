@@ -52,7 +52,7 @@ def main():
         disable_tqdm=train_config.disable_tqdm
     )
 
-    if train_config.metric is not None:
+    if hasattr(train_config, "compute_metrics") and train_config.compute_metrics is not None:
         metric = load_metric(train_config.compute_metrics)
 
     def compute_metrics(x):
