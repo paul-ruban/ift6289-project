@@ -36,10 +36,10 @@ def preprocess_function(examples, tokenizer, max_length=256):
         answer = answers[i]
         start_char = answer["answer_start"][0] if answer["answer_start"] else 0
         end_char = answer["answer_start"][0] + len(answer["text"][0]) if answer["answer_start"] else 0
-        answer_text = answer["text"][0] if answer["text"] else ''
-        answer_texts.append(answer_text)
-        tokenized_input = tokenizer.convert_ids_to_tokens(inputs["input_ids"][i])
-        tokenized_inputs.append(tokenized_input)
+        # answer_text = answer["text"][0] if answer["text"] else ''
+        # answer_texts.append(answer_text)
+        # tokenized_input = tokenizer.convert_ids_to_tokens(inputs["input_ids"][i])
+        # tokenized_inputs.append(tokenized_input)
         sequence_ids = inputs.sequence_ids(i)
 
         # Find the start and end of the context
@@ -64,8 +64,8 @@ def preprocess_function(examples, tokenizer, max_length=256):
 
     inputs["start_positions"] = start_positions
     inputs["end_positions"] = end_positions
-    inputs["answer_texts"] = answer_texts
-    inputs["tokenized_inputs"] = tokenized_inputs
+    # inputs["answer_texts"] = answer_texts
+    # inputs["tokenized_inputs"] = tokenized_inputs
     return inputs
 
 
@@ -91,7 +91,7 @@ def post_process_function(dataset, dataset_reference, predictions, tokenizer, da
                     continue
                 if e_id < s_id or e_id - s_id + 1 > 30:
                     continue
-                pred_txt = tokenizer.convert_tokens_to_string(ref["tokenized_inputs"][s_id:e_id+1])
+                pred_txt = ref["context"][ref["offset_mapping"][s_id][0]:ref["offset_mapping"][e_id][1]]
                 score = start_logits[i][s_id] + end_logits[i][e_id]
                 candidate_predictions.append(
                     dict(prediction_text=pred_txt, score=score)

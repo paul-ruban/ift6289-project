@@ -30,7 +30,7 @@ def main():
     
     dataset = load_dataset(train_config.data_path)
 
-    remove_columns = dataset["train"].column_names + ["offset_mapping", "answer_texts", "tokenized_inputs"]
+    remove_columns = dataset["train"].column_names + ["offset_mapping"]
 
     # Preprocess dataset
     processed_dataset = dataset.map(
