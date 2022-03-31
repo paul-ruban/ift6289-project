@@ -46,7 +46,8 @@ def main():
         num_train_epochs=train_config.num_train_epochs,
         weight_decay=train_config.weight_decay,
         optim=train_config.optim,
-        disable_tqdm=train_config.disable_tqdm
+        disable_tqdm=train_config.disable_tqdm,
+        compute_metrics=train_config.compute_metrics
     )
 
     trainer = SQUADTrainer(
@@ -59,7 +60,7 @@ def main():
     )
 
     # Train model
-    trainer.train(resume_from_checkpoint=True)
+    trainer.train()
 
     # Evaluate model
     trainer.evaluate(eval_dataset=dataset["validation"])
