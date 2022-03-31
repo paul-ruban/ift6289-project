@@ -11,5 +11,6 @@
     "per_device_eval_batch_size": 16,
     "num_train_epochs": 0.5,
     "weight_decay": 0.01,
-    "disable_tqdm": true
+    "disable_tqdm": true,
+    "compute_metrics": "squad"
 }
