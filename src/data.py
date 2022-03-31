@@ -119,7 +119,5 @@ def post_process_function(dataset, dataset_reference, predictions, tokenizer, da
     #         dict(id=k, prediction_text=v) for k, v in predictions.items() 
     #     ]
     
-    # take only one prediction per question
-    label_ids = [dict(id=ref["id"], answers={"text": [ref["answers"]["text"][0].lower()], "answer_start": ref["answers"]["answer_start"][:1]}) 
-                 for ref in dataset_reference]
+    label_ids = [dict(id=ref["id"], answers=ref["answers"]) for ref in dataset_reference]
     return EvalPrediction(predictions=all_predictions, label_ids=label_ids)
