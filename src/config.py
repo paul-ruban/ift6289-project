@@ -8,8 +8,9 @@ class TrainConfig:
         teacher_model=None,
         data_path=None,
         output_dir="../logs",
-        evaluation_strategy="steps",
-        logging_steps=1000,
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        save_total_limit=5,
         learning_rate=5e-5,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
@@ -17,16 +18,15 @@ class TrainConfig:
         weight_decay=0.01,
         optim="adamw",
         disable_tqdm=True,
-        compute_metrics=None,
-        do_train=True,
-        do_eval=True
+        compute_metrics=None
     ):
         self.model = model
         self.teacher_model = teacher_model
         self.data_path = data_path
         self.output_dir = output_dir
         self.evaluation_strategy = evaluation_strategy
-        self.logging_steps = logging_steps
+        self.save_strategy = save_strategy
+        self.save_total_limit = save_total_limit
         self.learning_rate = learning_rate
         self.per_device_train_batch_size = per_device_train_batch_size
         self.per_device_eval_batch_size = per_device_eval_batch_size
@@ -35,8 +35,6 @@ class TrainConfig:
         self.optim = optim
         self.disable_tqdm = disable_tqdm
         self.compute_metrics = compute_metrics
-        self.do_train = do_train
-        self.do_eval = do_eval
     
     @classmethod
     def from_json(cls, path):

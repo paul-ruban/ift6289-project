@@ -41,7 +41,8 @@ def main():
     training_args = TrainingArguments(
         output_dir=train_config.output_dir,
         evaluation_strategy=train_config.evaluation_strategy,
-        logging_steps=train_config.logging_steps,
+        save_strategy=train_config.save_strategy,
+        save_total_limit=train_config.save_total_limit,
         learning_rate=train_config.learning_rate,
         per_device_train_batch_size=train_config.per_device_train_batch_size,
         per_device_eval_batch_size=train_config.per_device_eval_batch_size,

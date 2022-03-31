@@ -27,19 +27,13 @@ def preprocess_function(examples, tokenizer, max_length=256):
 
     offset_mapping = inputs["offset_mapping"]
     answers = examples["answers"]
-    answer_texts = []
     start_positions = []
     end_positions = []
-    tokenized_inputs = []
 
     for i, offset in enumerate(offset_mapping):
         answer = answers[i]
         start_char = answer["answer_start"][0] if answer["answer_start"] else 0
         end_char = answer["answer_start"][0] + len(answer["text"][0]) if answer["answer_start"] else 0
-        # answer_text = answer["text"][0] if answer["text"] else ''
-        # answer_texts.append(answer_text)
-        # tokenized_input = tokenizer.convert_ids_to_tokens(inputs["input_ids"][i])
-        # tokenized_inputs.append(tokenized_input)
         sequence_ids = inputs.sequence_ids(i)
 
         # Find the start and end of the context
