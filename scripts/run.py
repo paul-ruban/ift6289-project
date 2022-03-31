@@ -5,7 +5,7 @@ from functools import partial
 from src.config import TrainConfig
 from src.trainer import SQUADTrainer # noqa: E501
 from src.data import preprocess_function
-from datasets import load_dataset
+from datasets import load_dataset, load_metric
 from transformers import (
     TrainingArguments, 
     AutoModelForQuestionAnswering,
@@ -36,6 +36,8 @@ def main():
         remove_columns=dataset["train"].column_names
     )
 
+    metric = load_metric(train_config.compute_metrics)
+
     training_args = TrainingArguments(
         output_dir=train_config.output_dir,
         evaluation_strategy=train_config.evaluation_strategy,
@@ -47,7 +49,9 @@ def main():
         weight_decay=train_config.weight_decay,
         optim=train_config.optim,
         disable_tqdm=train_config.disable_tqdm,
-        compute_metrics=train_config.compute_metrics
+        compute_metrics=lambda x: metric.compute(
+            predictions=x.predictions, 
+            references=x.label_ids)
     )
 
     trainer = SQUADTrainer(
