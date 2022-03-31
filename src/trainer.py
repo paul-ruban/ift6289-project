@@ -813,3 +813,39 @@ class SQUADTrainer(Trainer):
             self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)
 
         return self.optimizer
+
+    def evaluate(
+        self,
+        eval_dataset: Optional[Dataset] = None,
+        ignore_keys: Optional[List[str]] = None,
+        metric_key_prefix: str = "eval"
+    ) -> Dict[str, float]:
+
+        self._memory_tracker.start()
+        eval_dataloader = self.get_eval_dataloader(eval_dataset)
+        start_time = time.time()
+        output = self.evaluation_loop(
+            eval_dataloader,
+            description="Evaluation",
+            prediction_loss_only=True if self.compute_metrics is None else None,
+            ignore_keys=ignore_keys,
+            metric_key_prefix=metric_key_prefix,
+        )
+        
+        total_batch_size = self.args.eval_batch_size * self.args.world_size
+        output.metrics.update(
+            speed_metrics(
+                metric_key_prefix,
+                start_time,
+                num_samples=output.num_samples,
+                num_steps=math.ceil(output.num_samples / total_batch_size),
+            )
+        )
+
+        self.log(output.metrics)
+
+        self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control, output.metrics)
+
+        self._memory_tracker.stop_and_update_metrics(output.metrics)
+
+        return output.metrics
