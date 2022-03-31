@@ -78,7 +78,9 @@ def main():
     trainer.train()
 
     # Evaluate model
-    trainer.evaluate(eval_dataset=dataset["validation"])
+    trainer.evaluate(
+        eval_dataset=dataset_for_training["validation"],
+        eval_dataset_reference=processed_dataset["validation"])
 
     # Save model
     trainer.save_model()
