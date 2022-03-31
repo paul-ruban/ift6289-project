@@ -58,7 +58,22 @@ def main():
         tokenizer=tokenizer
     )
 
+    # Train model
     trainer.train()
+
+    # Evaluate model
+    trainer.evaluate(
+        eval_dataset=dataset["test"],
+        eval_batch_size=train_config.per_device_eval_batch_size,
+        disable_tqdm=train_config.disable_tqdm
+    )
+
+    # Save model
+    trainer.save_model(
+        model_dir=train_config.output_dir,
+        model_name="model.bin",
+        model_type="model",
+    )
 
 
 if __name__ == "__main__":
