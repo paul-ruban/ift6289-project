@@ -48,10 +48,7 @@ def main():
         num_train_epochs=train_config.num_train_epochs,
         weight_decay=train_config.weight_decay,
         optim=train_config.optim,
-        disable_tqdm=train_config.disable_tqdm,
-        compute_metrics=lambda x: metric.compute(
-            predictions=x.predictions, 
-            references=x.label_ids)
+        disable_tqdm=train_config.disable_tqdm
     )
 
     trainer = SQUADTrainer(
@@ -60,7 +57,10 @@ def main():
         args=training_args,
         train_dataset=dataset["train"],
         eval_dataset=dataset["validation"],
-        tokenizer=tokenizer
+        tokenizer=tokenizer,
+        compute_metrics=lambda x: metric.compute(
+            predictions=x.predictions, 
+            references=x.label_ids)
     )
 
     # Train model
