@@ -6,6 +6,7 @@ class TrainConfig:
         self,
         model=None,
         teacher_model=None,
+        distillation_method=None,
         data_path=None,
         output_dir="../logs",
         evaluation_strategy="epoch",
@@ -22,6 +23,7 @@ class TrainConfig:
     ):
         self.model = model
         self.teacher_model = teacher_model
+        self.distillation_method = distillation_method
         self.data_path = data_path
         self.output_dir = output_dir
         self.evaluation_strategy = evaluation_strategy

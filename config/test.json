@@ -1,6 +1,7 @@
 {
     "model": "google/bert_uncased_L-2_H-128_A-2",
-    "teacher_model": null,
+    "teacher_model": "distilbert-base-uncased",
+    "distillation_method": "soft_target",
     "data_path": "squad",
     "output_dir": "../logs",
     "evaluation_strategy": "epoch",

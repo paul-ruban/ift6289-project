@@ -69,6 +69,8 @@ from transformers.file_utils import (
 
 from transformers.utils import logging
 
+from src.distillation import get_distillation
+
 
 logger = logging.get_logger(__name__)
 
@@ -87,6 +89,7 @@ class SQUADTrainer(Trainer):
         self,
         model: Union[PreTrainedModel, nn.Module],
         teacher_model: PreTrainedModel = None,
+        distillation_method: str = "soft_target",
         args: TrainingArguments = None,
         data_collator: Optional[DataCollator] = None,
         train_dataset: Optional[Dataset] = None,
@@ -129,11 +132,18 @@ class SQUADTrainer(Trainer):
         self.eval_dataset = eval_dataset
         self.eval_dataset_reference = eval_dataset_reference
         self.tokenizer = tokenizer
-
+        
+        self.distillation = None
         self.teacher_model = None
+        self.do_distillation = False
+
+        if distillation_method and teacher_model:
+            self.distillation = get_distillation(distillation_method)
+            self.do_distillation = True
+
         if self.place_model_on_device:
             self._move_model_to_device(model, args.device)
-            if teacher_model is not None:
+            if self.do_distillation:
                 self._move_model_to_device(teacher_model, self.args.device)
                 self.teacher_model = teacher_model
 
@@ -202,10 +212,8 @@ class SQUADTrainer(Trainer):
         self._memory_tracker.stop_and_update_metrics()
 
         self.loss_names = ["loss_total", "loss_qa"]
-        self.do_distil = False
-        if teacher_model is not None:
-            self.loss_names += ["loss_distil"]
-            self.do_distil = True            
+        if self.do_distillation:
+            self.loss_names += ["loss_distil"]          
 
     def train(
         self,
@@ -662,21 +670,12 @@ class SQUADTrainer(Trainer):
         loss_dict["loss_qa"] = loss_qa
         loss_dict["loss_total"] = loss_qa
 
-        if teacher_model is not None:
-            log_softmax_fn = torch.nn.LogSoftmax(dim=-1)
-            loss_distil_fn = torch.nn.KLDivLoss(reduction="batchmean", log_target=True)
-
+        if self.do_distillation:
             with torch.no_grad():
                 teacher_outputs = teacher_model(**inputs)
 
-            start_log_inputs = log_softmax_fn(outputs["start_logits"])
-            end_log_inputs = log_softmax_fn(outputs["end_logits"])
-
-            start_log_targets = log_softmax_fn(teacher_outputs["start_logits"])
-            end_log_targets = log_softmax_fn(teacher_outputs["end_logits"])
-
-            loss_dict["loss_distil"] = loss_distil_fn(start_log_inputs, start_log_targets) + \
-                                       loss_distil_fn(end_log_inputs, end_log_targets)
+            loss_dict["loss_distil"] = self.distillation(outputs["start_logits"], teacher_outputs["start_logits"]) + \
+                                       self.distillation(outputs["end_logits"], teacher_outputs["end_logits"])
             loss_dict["loss_total"] = loss_dict["loss_qa"] + loss_dict["loss_distil"]
 
         return (loss_dict, outputs) if return_outputs else loss_dict
