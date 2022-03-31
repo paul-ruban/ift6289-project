@@ -52,7 +52,8 @@ def main():
         disable_tqdm=train_config.disable_tqdm
     )
 
-    metric = load_metric(train_config.compute_metrics)
+    if train_config.metric is not None:
+        metric = load_metric(train_config.compute_metrics)
 
     def compute_metrics(x):
         return metric.compute(
@@ -69,7 +70,7 @@ def main():
         eval_dataset=dataset_for_training["validation"],
         eval_dataset_reference=processed_dataset["validation"],
         tokenizer=tokenizer,
-        compute_metrics=compute_metrics,
+        compute_metrics=compute_metrics if train_config.compute_metrics else None,
         post_process_function=post_process_function
     )
 
