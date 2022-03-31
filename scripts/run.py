@@ -65,11 +65,7 @@ def main():
     trainer.evaluate(eval_dataset=dataset["validation"])
 
     # Save model
-    trainer.save_model(
-        model_dir=train_config.output_dir,
-        model_name="model.bin",
-        model_type="model",
-    )
+    trainer.save_model()
 
 
 if __name__ == "__main__":
