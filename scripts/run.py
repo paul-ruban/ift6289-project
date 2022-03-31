@@ -59,7 +59,7 @@ def main():
     )
 
     # Train model
-    trainer.train()
+    trainer.train(resume_from_checkpoint=True)
 
     # Evaluate model
     trainer.evaluate(eval_dataset=dataset["validation"])
