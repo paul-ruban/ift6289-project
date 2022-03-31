@@ -63,7 +63,7 @@ def main():
 
     # Evaluate model
     trainer.evaluate(
-        eval_dataset=dataset["test"],
+        eval_dataset=dataset["validation"],
         eval_batch_size=train_config.per_device_eval_batch_size,
         disable_tqdm=train_config.disable_tqdm
     )
