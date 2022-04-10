@@ -28,7 +28,7 @@ def main():
     if train_config.teacher_model is not None:
         teacher_model = AutoModelForQuestionAnswering.from_pretrained(train_config.teacher_model)
     
-    dataset = load_dataset(train_config.data_path)
+    dataset = load_dataset(train_config.dataset_name)
 
     remove_columns = dataset["train"].column_names + ["offset_mapping"]
 
@@ -52,8 +52,8 @@ def main():
         disable_tqdm=train_config.disable_tqdm
     )
 
-    if hasattr(train_config, "compute_metrics") and train_config.compute_metrics is not None:
-        metric = load_metric(train_config.compute_metrics)
+    if train_config.compute_metrics:
+        metric = load_metric(train_config.dataset_name)
 
     def compute_metrics(x):
         return metric.compute(

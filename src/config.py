@@ -4,10 +4,10 @@ import json
 class TrainConfig:
     def __init__(
         self,
-        model=None,
+        model,
+        dataset_name,
         teacher_model=None,
         distillation_method=None,
-        data_path=None,
         output_dir="../logs",
         evaluation_strategy="epoch",
         save_strategy="epoch",
@@ -19,12 +19,12 @@ class TrainConfig:
         weight_decay=0.01,
         optim="adamw",
         disable_tqdm=True,
-        compute_metrics=None
+        compute_metrics=False
     ):
         self.model = model
+        self.dataset_name = dataset_name
         self.teacher_model = teacher_model
         self.distillation_method = distillation_method
-        self.data_path = data_path
         self.output_dir = output_dir
         self.evaluation_strategy = evaluation_strategy
         self.save_strategy = save_strategy

@@ -61,8 +61,8 @@ class CorrelationCongruence(torch.nn.Module):
 		similarity  = torch.matmul(x, x.t())
 		corr_matrix = torch.zeros_like(similarity)
 
-		for p in range(self.p_order+1):
-			corr_matrix += math.exp(-2*self.gamma) * (2*self.gamma)**p / \
+		for p in range(self.p_order + 1):
+			corr_matrix += math.exp(-2 * self.gamma) * (2 * self.gamma)**p / \
 						math.factorial(p) * torch.pow(corr_matrix, p)
 
 		return corr_matrix

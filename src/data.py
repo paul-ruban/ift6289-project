@@ -58,8 +58,8 @@ def preprocess_function(examples, tokenizer, max_length=256):
 
     inputs["start_positions"] = start_positions
     inputs["end_positions"] = end_positions
-    # inputs["answer_texts"] = answer_texts
-    # inputs["tokenized_inputs"] = tokenized_inputs
+
+
     return inputs
 
 
