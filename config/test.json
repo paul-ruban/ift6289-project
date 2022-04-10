@@ -1,8 +1,8 @@
 {
     "model": "google/bert_uncased_L-2_H-128_A-2",
-    "teacher_model": "distilbert-base-uncased",
+    "teacher_model": "google/bert_uncased_L-2_H-128_A-2",
     "distillation_method": "soft_target",
-    "data_path": "squad",
+    "dataset_name": "squad_v2",
     "output_dir": "../logs",
     "evaluation_strategy": "epoch",
     "save_strategy": "epoch",
@@ -14,5 +14,5 @@
     "num_train_epochs": 5,
     "weight_decay": 0.01,
     "disable_tqdm": true,
-    "compute_metrics": "squad"
+    "compute_metrics": true
 }
