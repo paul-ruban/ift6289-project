@@ -65,6 +65,7 @@ def main():
     trainer = SQUADTrainer(
         model=model,
         teacher_model=teacher_model,
+        distillation_method=train_config.distillation_method,
         args=training_args,
         train_dataset=dataset_for_training["train"],
         eval_dataset=dataset_for_training["validation"],

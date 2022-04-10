@@ -9,21 +9,19 @@ import sys
 import math
 import time
 import logging
-import warnings
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from tqdm.auto import tqdm
 
 import numpy as np
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
-from torch.utils.data import DataLoader, Dataset, RandomSampler, SequentialSampler
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 from transformers import Trainer
 from transformers.configuration_utils import PretrainedConfig
-from transformers.modeling_utils import PreTrainedModel, unwrap_model
+from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
-from transformers.training_args import OptimizerNames, ParallelMode, TrainingArguments
+from transformers.training_args import TrainingArguments
 from transformers.data.data_collator import DataCollator, DataCollatorWithPadding, default_data_collator
 from transformers.trainer_utils import (
     EvalLoopOutput,
@@ -84,7 +82,7 @@ SCALER_NAME = "scaler.pt"
 
 
 class SQUADTrainer(Trainer):
-    """ Overrides the Trainer class to perform regular Fine-tuning and distillation """
+    """ Overrides the Trainer class to perform regular Fine-tuning and distillation."""
     def __init__(
         self,
         model: Union[PreTrainedModel, nn.Module],
