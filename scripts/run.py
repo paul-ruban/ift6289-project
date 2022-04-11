@@ -10,7 +10,8 @@ from datasets import load_dataset, load_metric
 from transformers import (
     TrainingArguments, 
     AutoModelForQuestionAnswering,
-    AutoTokenizer
+    AutoTokenizer,
+    EarlyStoppingCallback
 )
 
 
@@ -41,6 +42,7 @@ def main():
     training_args = TrainingArguments(
         output_dir=train_config.output_dir,
         evaluation_strategy=train_config.evaluation_strategy,
+        eval_steps=train_config.eval_steps,
         save_strategy=train_config.save_strategy,
         save_total_limit=train_config.save_total_limit,
         learning_rate=train_config.learning_rate,
@@ -49,7 +51,9 @@ def main():
         num_train_epochs=train_config.num_train_epochs,
         weight_decay=train_config.weight_decay,
         optim=train_config.optim,
-        disable_tqdm=train_config.disable_tqdm
+        disable_tqdm=train_config.disable_tqdm,
+        metric_for_best_model=train_config.metric_for_best_model,
+        load_best_model_at_end=True,
     )
 
     if train_config.compute_metrics:
@@ -75,7 +79,8 @@ def main():
         tokenizer=tokenizer,
         compute_metrics=compute_metrics if train_config.compute_metrics else None,
         post_process_function=post_process_function,
-        dataset_name=train_config.dataset_name
+        dataset_name=train_config.dataset_name,
+        callbacks = [EarlyStoppingCallback(early_stopping_patience=5)]
     )
 
     # Train model

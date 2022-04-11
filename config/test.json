@@ -2,17 +2,19 @@
     "model": "google/bert_uncased_L-2_H-128_A-2",
     "teacher_model": "google/bert_uncased_L-2_H-128_A-2",
     "distillation_method": "soft_target",
-    "dataset_name": "squad_v2",
+    "dataset_name": "squad",
     "output_dir": "../logs",
-    "evaluation_strategy": "epoch",
+    "evaluation_strategy": "steps",
+    "eval_steps": 1000,
     "save_strategy": "epoch",
     "save_total_limit": 3,
     "learning_rate": 5e-5,
     "optim": "adamw_torch",
     "per_device_train_batch_size": 16,
     "per_device_eval_batch_size": 16,
-    "num_train_epochs": 5,
+    "num_train_epochs": 10,
     "weight_decay": 0.01,
     "disable_tqdm": true,
-    "compute_metrics": true
+    "compute_metrics": true,
+    "metric_for_best_model": "f1"
 }

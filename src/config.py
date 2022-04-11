@@ -9,7 +9,8 @@ class TrainConfig:
         teacher_model=None,
         distillation_method=None,
         output_dir="../logs",
-        evaluation_strategy="epoch",
+        evaluation_strategy="steps",
+        eval_steps=1000,
         save_strategy="epoch",
         save_total_limit=5,
         learning_rate=5e-5,
@@ -19,7 +20,8 @@ class TrainConfig:
         weight_decay=0.01,
         optim="adamw",
         disable_tqdm=True,
-        compute_metrics=False
+        compute_metrics=False,
+        metric_for_best_model="f1"   
     ):
         self.model = model
         self.dataset_name = dataset_name
@@ -27,6 +29,7 @@ class TrainConfig:
         self.distillation_method = distillation_method
         self.output_dir = output_dir
         self.evaluation_strategy = evaluation_strategy
+        self.eval_steps = eval_steps
         self.save_strategy = save_strategy
         self.save_total_limit = save_total_limit
         self.learning_rate = learning_rate
@@ -37,6 +40,7 @@ class TrainConfig:
         self.optim = optim
         self.disable_tqdm = disable_tqdm
         self.compute_metrics = compute_metrics
+        self.metric_for_best_model = metric_for_best_model
     
     @classmethod
     def from_json(cls, path):
