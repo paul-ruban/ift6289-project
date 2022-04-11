@@ -54,7 +54,7 @@ def main():
         optim=train_config.optim,
         disable_tqdm=train_config.disable_tqdm,
         metric_for_best_model=train_config.metric_for_best_model,
-        load_best_model_at_end=True,
+        load_best_model_at_end=True
     )
 
     if train_config.compute_metrics:
@@ -85,7 +85,7 @@ def main():
     )
 
     # Train model
-    # trainer.train()
+    trainer.train()
 
     # Evaluate model
     trainer.evaluate(

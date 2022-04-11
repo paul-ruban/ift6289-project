@@ -22,7 +22,8 @@ class TrainConfig:
         optim="adamw",
         disable_tqdm=True,
         compute_metrics=False,
-        metric_for_best_model="f1"   
+        metric_for_best_model="f1",
+        greater_is_better=True
     ):
         self.model = model
         self.dataset_name = dataset_name
