@@ -56,9 +56,11 @@ def main():
         metric = load_metric(train_config.dataset_name)
 
     def compute_metrics(x):
-        return metric.compute(
-            predictions=x.predictions, 
-            references=x.label_ids)
+        results = metric.compute(
+            predictions=x.predictions, references=x.label_ids)
+        # accomodate squad and squadv2 metrics
+        return {"exact_match": results["exact"] if results.get("exact") else results["exact_match"], 
+                "f1": results["f1"]}
 
     dataset_for_training = processed_dataset.remove_columns(remove_columns)
 
@@ -72,11 +74,12 @@ def main():
         eval_dataset_reference=processed_dataset["validation"],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics if train_config.compute_metrics else None,
-        post_process_function=post_process_function
+        post_process_function=post_process_function,
+        dataset_name=train_config.dataset_name
     )
 
     # Train model
-    trainer.train()
+    # trainer.train()
 
     # Evaluate model
     trainer.evaluate(

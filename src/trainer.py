@@ -97,7 +97,8 @@ class SQUADTrainer(Trainer):
         compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
         callbacks: Optional[List[TrainerCallback]] = None,
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
-        post_process_function: Callable = None
+        post_process_function: Callable = None,
+        dataset_name: str = "squad",
     ):
         self.args = args
         # Seed must be set before instantiating the model when using model
@@ -211,7 +212,9 @@ class SQUADTrainer(Trainer):
 
         self.loss_names = ["loss_total", "loss_qa"]
         if self.do_distillation:
-            self.loss_names += ["loss_distil"]          
+            self.loss_names += ["loss_distil"] 
+
+        self.dataset_name = dataset_name     
 
     def train(
         self,
@@ -954,7 +957,7 @@ class SQUADTrainer(Trainer):
         # Metrics!
         if self.post_process_function is not None and self.compute_metrics is not None:
             eval_preds = self.post_process_function(
-                eval_dataset, eval_dataset_reference, all_preds, self.tokenizer, )
+                eval_dataset, eval_dataset_reference, all_preds, self.dataset_name)
             metrics = self.compute_metrics(eval_preds)
             # Prefix all keys with metric_key_prefix + '_'
             for key in list(metrics.keys()):

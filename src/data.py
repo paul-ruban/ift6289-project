@@ -63,12 +63,12 @@ def preprocess_function(examples, tokenizer, max_length=256):
     return inputs
 
 
-def post_process_function(dataset, dataset_reference, predictions, tokenizer, dataset_type="squad"):
+def post_process_function(dataset, dataset_reference, predictions, dataset_type):
     """ Function used for mapping model predictions to SQUAD datapoints."""
     
     start_logits, end_logits = predictions
     assert (len(dataset) == len(start_logits)), "Dataset and predictions must have the same length"
-    assert (dataset_type in ["squad", "squad_v2"]), f"Invalid dataset_type: {dataset_type}"
+    assert (dataset_type in ["squad", "squad_v2"]), "Dataset type must be squad or squad_v2"
 
     # The dictionaries we have to fill.
     all_predictions = []
@@ -94,24 +94,23 @@ def post_process_function(dataset, dataset_reference, predictions, tokenizer, da
         if dataset_type == "squad_v2" or not candidate_predictions:
             no_answer_score = start_logits[i][0] + end_logits[i][0]
             candidate_predictions.append(
-                dict(prediction_text="", score=no_answer_score)
+                {"prediction_text": '', "score": no_answer_score}
             )
         
         best_prediction = sorted(candidate_predictions, key=lambda x: x["score"], reverse=True)[0]
 
         all_predictions.append(
-            dict(id=dataset_reference["id"][i], prediction_text=best_prediction["prediction_text"])
+           {"id": dataset_reference["id"][i], "prediction_text": best_prediction["prediction_text"]}
         )
 
-    # if dataset_type == "squad":
-    #     predictions = [
-    #         dict(id=k, prediction_text=v, no_answer_probability=0.0)
-    #         for k, v in predictions.items() 
-    #     ]
-    # else:
-    #     predictions = [
-    #         dict(id=k, prediction_text=v) for k, v in predictions.items() 
-    #     ]
+    # keep no_answer_probability = 0.0 since the only metrics we care about are F1 and EM
+    if dataset_type == "squad_v2":
+        all_predictions = [
+            {"id": prediction["id"], 
+            "prediction_text": prediction["prediction_text"],
+            "no_answer_probability": 0.0}
+            for prediction in all_predictions
+        ]
     
-    label_ids = [dict(id=ref["id"], answers=ref["answers"]) for ref in dataset_reference]
-    return EvalPrediction(predictions=all_predictions, label_ids=label_ids)
+    references = [{"id": ref["id"], "answers": ref["answers"]} for ref in dataset_reference]
+    return EvalPrediction(predictions=all_predictions, label_ids=references)
