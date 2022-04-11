@@ -44,6 +44,7 @@ def main():
         evaluation_strategy=train_config.evaluation_strategy,
         eval_steps=train_config.eval_steps,
         save_strategy=train_config.save_strategy,
+        save_steps=train_config.save_steps,
         save_total_limit=train_config.save_total_limit,
         learning_rate=train_config.learning_rate,
         per_device_train_batch_size=train_config.per_device_train_batch_size,

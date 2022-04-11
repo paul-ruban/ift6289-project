@@ -12,6 +12,7 @@ class TrainConfig:
         evaluation_strategy="steps",
         eval_steps=1000,
         save_strategy="epoch",
+        save_steps=1000,
         save_total_limit=5,
         learning_rate=5e-5,
         per_device_train_batch_size=16,
@@ -31,6 +32,7 @@ class TrainConfig:
         self.evaluation_strategy = evaluation_strategy
         self.eval_steps = eval_steps
         self.save_strategy = save_strategy
+        self.save_steps = save_steps
         self.save_total_limit = save_total_limit
         self.learning_rate = learning_rate
         self.per_device_train_batch_size = per_device_train_batch_size
