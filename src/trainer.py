@@ -89,7 +89,7 @@ class SQUADTrainer(Trainer):
         teacher_model: PreTrainedModel = None,
         distillation_method: str = "soft_target",
         args: TrainingArguments = None,
-        data_collator: Optional[DataCollator] = None,
+        data_collator: Optional[DataCollator] = default_data_collator,
         train_dataset: Optional[Dataset] = None,
         eval_dataset: Optional[Dataset] = None,
         eval_dataset_reference: Optional[Dataset] = None,

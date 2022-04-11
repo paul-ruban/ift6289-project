@@ -5,7 +5,7 @@ import argparse
 from functools import partial
 from src.config import TrainConfig
 from src.trainer import SQUADTrainer # noqa: E501
-from src.data import preprocess_function, post_process_function
+from src.data import preprocess_train_dataset, preprocess_eval_dataset, post_process_function
 from datasets import load_dataset, load_metric
 from transformers import (
     TrainingArguments, 
@@ -31,12 +31,11 @@ def main():
     
     dataset = load_dataset(train_config.dataset_name)
 
-    remove_columns = dataset["train"].column_names + ["offset_mapping"]
-
     # Preprocess dataset
     processed_dataset = dataset.map(
-        partial(preprocess_function, tokenizer=tokenizer),
-        batched=True
+        partial(preprocess_train_dataset, tokenizer=tokenizer),
+        batched=True,
+        remove_columns=dataset["train"].column_names
     )
 
     training_args = TrainingArguments(
@@ -67,16 +66,20 @@ def main():
         return {"exact_match": results["exact"] if results.get("exact") else results["exact_match"], 
                 "f1": results["f1"]}
 
-    dataset_for_training = processed_dataset.remove_columns(remove_columns)
+    eval_dataset_reference = dataset["validation"].map(
+        partial(preprocess_eval_dataset, tokenizer=tokenizer),
+        batched=True,
+        remove_columns=dataset["validation"].column_names
+    )
 
     trainer = SQUADTrainer(
         model=model,
         teacher_model=teacher_model,
         distillation_method=train_config.distillation_method,
         args=training_args,
-        train_dataset=dataset_for_training["train"],
-        eval_dataset=dataset_for_training["validation"],
-        eval_dataset_reference=processed_dataset["validation"],
+        train_dataset=processed_dataset["train"],
+        eval_dataset=processed_dataset["validation"],
+        eval_dataset_reference=eval_dataset_reference,
         tokenizer=tokenizer,
         compute_metrics=compute_metrics if train_config.compute_metrics else None,
         post_process_function=post_process_function,
