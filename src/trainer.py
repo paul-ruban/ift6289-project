@@ -668,16 +668,17 @@ class SQUADTrainer(Trainer):
 
         outputs = model(**inputs)
         loss_qa = outputs["loss"]
-        loss_dict["loss_qa"] = loss_qa
-        loss_dict["loss_total"] = loss_qa
+        loss_total = loss_qa
 
         if self.do_distillation and teacher_model is not None:
             with torch.no_grad():
                 teacher_outputs = teacher_model(**inputs)
 
-            loss_dict["loss_distil"] = self.distillation(outputs["start_logits"], teacher_outputs["start_logits"]) + \
+            loss_distil = self.distillation(outputs["start_logits"], teacher_outputs["start_logits"]) + \
                                        self.distillation(outputs["end_logits"], teacher_outputs["end_logits"])
-            loss_dict["loss_total"] = loss_dict["loss_qa"] + loss_dict["loss_distil"]
+            loss_total += loss_distil
+
+        loss_dict = {"loss_total": loss_total, "loss_qa": loss_qa}
 
         return (loss_dict, outputs) if return_outputs else loss_dict
     
