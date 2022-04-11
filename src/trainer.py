@@ -961,7 +961,7 @@ class SQUADTrainer(Trainer):
         # Metrics!
         if self.post_process_function is not None and self.compute_metrics is not None:
             eval_preds = self.post_process_function(
-                eval_dataset, eval_dataset_reference, all_preds, self.dataset_name)
+                eval_dataset, eval_dataset_reference, all_preds, self.tokenizer, self.dataset_name)
             metrics = self.compute_metrics(eval_preds)
             # Prefix all keys with metric_key_prefix + '_'
             for key in list(metrics.keys()):
