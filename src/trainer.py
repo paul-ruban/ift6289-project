@@ -960,6 +960,9 @@ class SQUADTrainer(Trainer):
 
         # Metrics!
         if self.post_process_function is not None and self.compute_metrics is not None:
+            eval_dataset_reference.set_format(
+                type=eval_dataset_reference.format["type"], 
+                columns=list(eval_dataset_reference.features.keys()))
             eval_preds = self.post_process_function(
                 eval_dataset, eval_dataset_reference, all_preds, self.tokenizer, self.dataset_name)
             metrics = self.compute_metrics(eval_preds)
