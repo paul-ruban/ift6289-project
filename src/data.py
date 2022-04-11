@@ -141,8 +141,8 @@ def preprocess_eval_dataset(examples, tokenizer, max_length=384, stride=128):
 
 
 def post_process_function(
-    examples, 
     features, 
+    examples,
     raw_predictions, 
     tokenizer, 
     dataset_type, 
