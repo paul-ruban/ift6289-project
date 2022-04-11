@@ -66,11 +66,11 @@ def main():
         return {"exact_match": results["exact"] if results.get("exact") else results["exact_match"], 
                 "f1": results["f1"]}
 
-    # eval_dataset_reference = dataset["validation"].map(
-    #     partial(preprocess_eval_dataset, tokenizer=tokenizer),
-    #     batched=True,
-    #     remove_columns=dataset["validation"].column_names
-    # )
+    eval_dataset = dataset["validation"].map(
+        partial(preprocess_eval_dataset, tokenizer=tokenizer),
+        batched=True,
+        remove_columns=dataset["validation"].column_names
+    )
 
     trainer = SQUADTrainer(
         model=model,
@@ -78,7 +78,7 @@ def main():
         distillation_method=train_config.distillation_method,
         args=training_args,
         train_dataset=processed_dataset["train"],
-        eval_dataset=processed_dataset["validation"],
+        eval_dataset=eval_dataset,
         eval_dataset_reference=dataset["validation"],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics if train_config.compute_metrics else None,
