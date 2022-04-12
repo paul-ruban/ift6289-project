@@ -22,8 +22,7 @@ class TrainConfig:
         optim="adamw",
         disable_tqdm=True,
         compute_metrics=False,
-        metric_for_best_model="f1",
-        greater_is_better=True
+        metric_for_best_model="loss"
     ):
         """ TrainConfig
         
@@ -47,7 +46,6 @@ class TrainConfig:
             disable_tqdm (bool): disable progress bar
             compute_metrics (bool): compute metrics
             metric_for_best_model (str): metric for best model
-            greater_is_better (bool): greater is better
         """
         self.model = model
         self.dataset_name = dataset_name
@@ -68,7 +66,14 @@ class TrainConfig:
         self.disable_tqdm = disable_tqdm
         self.compute_metrics = compute_metrics
         self.metric_for_best_model = metric_for_best_model
-    
+
+        # sanity check
+        if teacher_model is None:
+            assert (distillation_method is not None), "If teacher_model is passed, distillation_method must be specified."
+            assert (compute_metrics is False), "If teacher_model is passed, compute_metrics must be False."
+        else:
+            assert (distillation_method is None), "If teacher_model is not passed, distillation_method must be None."
+
     @classmethod
     def from_json(cls, path):
         """ Load from json file
