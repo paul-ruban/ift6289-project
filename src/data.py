@@ -208,16 +208,16 @@ def post_process_function(
                     # Don't consider out-of-scope answers, either because the indices are out of bounds or correspond
                     # to part of the input_ids that are not in the context.
                     if (
-                        start_index >= len(offset_mapping)
-                        or end_index >= len(offset_mapping)
-                        or offset_mapping[start_index] is None
-                        or offset_mapping[end_index] is None
+                        start_index >= len(offset_mapping) or
+                        end_index >= len(offset_mapping) or
+                        not offset_mapping[start_index] or
+                        not offset_mapping[end_index]
                     ):
                         continue
                     # Don't consider answers with a length that is either < 0 or > max_answer_length.
                     if end_index < start_index or end_index - start_index + 1 > max_answer_length:
                         continue
-
+                    
                     start_char = offset_mapping[start_index][0]
                     end_char = offset_mapping[end_index][1]
                     valid_answers.append(
