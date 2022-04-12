@@ -81,7 +81,7 @@ def main():
         eval_dataset_raw=dataset["validation"],
         eval_features=eval_features,
         tokenizer=tokenizer,
-        compute_metrics=load_metric(dataset_name) if train_config.compute_metrics else None,
+        compute_metrics=load_metric(dataset_name).compute if train_config.compute_metrics else None,
         post_process_function=post_process_function,
         dataset_name=train_config.dataset_name,
         callbacks = [EarlyStoppingCallback(early_stopping_patience=5)]
