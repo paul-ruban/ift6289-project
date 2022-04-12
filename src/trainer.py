@@ -82,7 +82,27 @@ SCALER_NAME = "scaler.pt"
 
 
 class SQUADTrainer(Trainer):
-    """ Overrides the Trainer class to perform regular Fine-tuning and distillation."""
+    """ Overrides the Trainer class to perform regular Fine-tuning and distillation.
+    
+    Args:
+        model (PreTrainedModel): The model to train.
+        teacher_model (PreTrainedModel): The model to use for distillation.
+        distillation_method (str): The distillation method to use.
+        args (TrainingArguments): The training arguments.
+        data_collator (DataCollator): The data collator.
+        train_dataset (:obj:`torch.utils.data.dataset.Dataset`): The dataset to train on.
+        eval_dataset (:obj:`torch.utils.data.dataset.Dataset`): The dataset to evaluate on.
+        eval_dataset_raw (:obj:`torch.utils.data.dataset.Dataset`): The raw dataset to evaluate on.
+        eval_features (List[Dict]): A list of dicts containing the results of preprocessing the evaluation dataset.
+        tokenizer (PreTrainedTokenizer): The tokenizer.
+        compute_metrics (Callable[[EvalPrediction], Dict]): A function that computes the evaluation metrics for the model.
+        callback (:obj:`TrainerCallback`): A callback to use during training.
+        optimizers Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR]: A tuple containing the optimizer and the scheduler.
+        postprocess_predictions (Callable[[List[EvalPrediction]], List[Dict]]): A function to postprocess the predictions.
+        dataset_name (str): The name of the dataset.
+        
+        Returns:
+            :obj:`TrainOutput` : The loss and log metrics for the model."""
     def __init__(
         self,
         model: Union[PreTrainedModel, nn.Module],
@@ -577,6 +597,19 @@ class SQUADTrainer(Trainer):
         return TrainOutput(self.state.global_step, train_loss, metrics)
     
     def _maybe_log_save_evaluate(self, tr_loss_dict, model, trial, epoch, ignore_keys_for_eval):
+        """ Logs and saves model and evaluate if necessary.
+        
+        Args:
+            tr_loss_dict (dict): dictionary of losses
+            model (torch.nn.Module): model to evaluate
+            trial (optuna.Trial): trial to evaluate
+            epoch (int): epoch to evaluate
+            ignore_keys_for_eval (list): list of keys to ignore when evaluating
+        
+        Returns:
+            None
+        """
+
         if self.control.should_log:
             logs: Dict[str, float] = {}
 
@@ -665,6 +698,7 @@ class SQUADTrainer(Trainer):
 
         Args:
             model (`nn.Module`): The model to train.
+            teacher_model (`nn.Module`): Trained model to use as a reference.
             inputs (`Dict[str, Union[torch.Tensor, Any]]`): The inputs and targets of the model.
             return_outputs (bool, optional): Whether to return the outputs. Defaults to False.
 
@@ -798,7 +832,19 @@ class SQUADTrainer(Trainer):
         ignore_keys: Optional[List[str]] = None,
         metric_key_prefix: str = "eval"
     ) -> Dict[str, float]:
-
+        """ Evaluate the model on eval_dataset. 
+        
+        Args:
+            eval_dataset (`Dataset`, optional):
+                The dataset to evaluate the model on.
+            ignore_keys (`List[str]`, optional):
+                A list of keys in the output of your model (if it is a dictionary) that should be ignored when 
+                gathering predictions.
+            metric_key_prefix (`str`, optional):
+                The prefix to use for the metric keys.
+        
+        Returns:
+            `Dict[str, float]`: The metrics."""
         self._memory_tracker.start()
         if eval_dataset is None:
             eval_dataset = self.eval_dataset
@@ -841,6 +887,22 @@ class SQUADTrainer(Trainer):
         """
         Prediction/evaluation loop, shared by `Trainer.evaluate()` and `Trainer.predict()`.
         Works both with or without labels.
+
+        Args:
+            dataloader (`DataLoader`):
+                The dataloader to use.
+            description (`str`): 
+                A description for the epoch, to log to stdout.
+            prediction_loss_only (`bool`, optional): 
+                Whether to only compute the loss.
+            ignore_keys (`List[str]`, optional): 
+                A list of keys in the output of your model (if it is a dictionary) that 
+                should be ignored when gathering predictions.
+            metric_key_prefix (`str`, optional):
+                The prefix to use for the metric keys.
+        
+        Returns:
+            `EvalLoopOutput`: The output of the evaluation loop.
         """
         args = self.args
 
