@@ -6,8 +6,8 @@ import numpy as np
 from tqdm import tqdm
 
 
-MAX_LENGTH = 128
-STRIDE = 0
+MAX_LENGTH = 384
+STRIDE = 128
 
 def preprocess_train_dataset(examples, tokenizer, max_length=MAX_LENGTH, stride=STRIDE): 
     """ Function used for mapping SQUAD datapoints to model inputs. 
@@ -105,7 +105,7 @@ def preprocess_eval_dataset(examples, tokenizer, max_length=MAX_LENGTH, stride=S
 
     pad_on_right = tokenizer.padding_side == "right"
 
-    examples["question"] = [q.lstrip() for q in examples["question"]]
+    examples["question"] = [q.strip() for q in examples["question"]]
 
     inputs = tokenizer(
         text=examples["question" if pad_on_right else "context"],
@@ -144,8 +144,8 @@ def preprocess_eval_dataset(examples, tokenizer, max_length=MAX_LENGTH, stride=S
 
 
 def post_process_function(
-    features, 
     examples,
+    features, 
     raw_predictions, 
     tokenizer, 
     dataset_type, 

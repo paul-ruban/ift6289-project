@@ -92,7 +92,8 @@ class SQUADTrainer(Trainer):
         data_collator: Optional[DataCollator] = default_data_collator,
         train_dataset: Optional[Dataset] = None,
         eval_dataset: Optional[Dataset] = None,
-        eval_dataset_reference: Optional[Dataset] = None,
+        eval_dataset_raw: Optional[Dataset] = None,
+        eval_features: Optional[Dataset] = None,
         tokenizer: Optional[PreTrainedTokenizerBase] = None,
         compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
         callbacks: Optional[List[TrainerCallback]] = None,
@@ -129,7 +130,8 @@ class SQUADTrainer(Trainer):
         self.data_collator = data_collator if data_collator is not None else default_collator
         self.train_dataset = train_dataset
         self.eval_dataset = eval_dataset
-        self.eval_dataset_reference = eval_dataset_reference
+        self.eval_dataset_raw = eval_dataset_raw
+        self.eval_features = eval_features
         self.tokenizer = tokenizer
         
         self.distillation = None
@@ -149,6 +151,10 @@ class SQUADTrainer(Trainer):
         self.model = model
 
         self.compute_metrics = compute_metrics
+        if callable(self.compute_metrics):
+            assert (eval_dataset_raw is not None and eval_features is not None), \
+                "If you want to use a custom eval function, you must pass both eval_dataset_raw and eval_features"
+
         self.post_process_function = post_process_function
         self.optimizer, self.lr_scheduler = optimizers
         
@@ -458,7 +464,8 @@ class SQUADTrainer(Trainer):
                 for loss_name in self.loss_names:
                     if (
                         args.logging_nan_inf_filter
-                        and (torch.isnan(tr_loss_step_dict[loss_name]) or torch.isinf(tr_loss_step_dict[loss_name]))
+                        and (torch.isnan(tr_loss_step_dict[loss_name]) 
+                        or torch.isinf(tr_loss_step_dict[loss_name]))
                     ):
                         # if loss is nan or inf simply add the average of previous logged losses
                         tr_loss_dict[loss_name] += tr_loss_dict[loss_name] / (1 + self.state.global_step - self._globalstep_last_logged)
@@ -579,6 +586,9 @@ class SQUADTrainer(Trainer):
                 tr_loss_scalar_dict[loss_name] = self._nested_gather(tr_loss_dict[loss_name]).mean().item()
                 
                 logs[loss_name] = round(tr_loss_scalar_dict[loss_name] / (self.state.global_step - self._globalstep_last_logged), 4)
+                
+                # reset tr_loss to zero
+                tr_loss_dict[loss_name] -= tr_loss_dict[loss_name]
             
             logs["learning_rate"] = self._get_learning_rate()
 
@@ -598,9 +608,6 @@ class SQUADTrainer(Trainer):
             self._save_checkpoint(model, trial, metrics=metrics)
             self.control = self.callback_handler.on_save(self.args, self.state, self.control)
         
-        # reset tr_loss to zero
-        for loss_name in self.loss_names:
-            tr_loss_dict[loss_name] -= tr_loss_dict[loss_name]
 
     def training_step(
         self, 
@@ -667,8 +674,9 @@ class SQUADTrainer(Trainer):
         loss_dict = dict()
 
         outputs = model(**inputs)
+        loss_total = 0.0 # sum up batch loss
         loss_qa = outputs["loss"]
-        loss_total = loss_qa
+        loss_total += loss_qa
         loss_dict = dict()
 
         if self.do_distillation and teacher_model is not None:
@@ -787,19 +795,18 @@ class SQUADTrainer(Trainer):
     def evaluate(
         self,
         eval_dataset: Optional[Dataset] = None,
-        eval_dataset_reference: Optional[Dataset] = None,
         ignore_keys: Optional[List[str]] = None,
         metric_key_prefix: str = "eval"
     ) -> Dict[str, float]:
 
         self._memory_tracker.start()
+        if eval_dataset is None:
+            eval_dataset = self.eval_dataset
         eval_dataloader = self.get_eval_dataloader(eval_dataset)
-        eval_dataset_reference = self.eval_dataset_reference if eval_dataset_reference is None else eval_dataset_reference
         start_time = time.time()
         output = self.evaluation_loop(
             eval_dataloader,
             description="Evaluation",
-            eval_dataset_reference=eval_dataset_reference,
             prediction_loss_only=self.compute_metrics is None,
             ignore_keys=ignore_keys,
             metric_key_prefix=metric_key_prefix,
@@ -827,7 +834,6 @@ class SQUADTrainer(Trainer):
         self,
         dataloader: DataLoader,
         description: str,
-        eval_dataset_reference: Optional[Dataset] = None,
         prediction_loss_only: Optional[bool] = False,
         ignore_keys: Optional[List[str]] = None,
         metric_key_prefix: str = "eval",
@@ -961,8 +967,31 @@ class SQUADTrainer(Trainer):
         # Metrics!
         if self.post_process_function is not None and self.compute_metrics is not None:
             eval_preds = self.post_process_function(
-                eval_dataset, eval_dataset_reference, all_preds, self.tokenizer, self.dataset_name)
-            metrics = self.compute_metrics(eval_preds)
+                examples=self.eval_dataset_raw,
+                features=self.eval_features, 
+                raw_predictions=all_preds, 
+                tokenizer=self.tokenizer, 
+                dataset_type=self.dataset_name)
+            
+            if self.dataset_name == "squad":
+                predictions = [
+                    {"id": id, 
+                    "prediction_text": pred} 
+                    for id, pred in eval_preds.items()
+                ]
+            else:
+                predictions = [
+                    {"id": id, 
+                    "prediction_text": pred, 
+                    "no_answer_probability": 0.0} 
+                    for id, pred in eval_preds.items()
+                ]
+            references = [
+                {"id": e["id"], 
+                "answers": e["answers"]} 
+                for e in self.eval_dataset_raw["validation"]
+            ]
+            metrics = self.compute_metrics(predictions=predictions, references=references)
             # Prefix all keys with metric_key_prefix + '_'
             for key in list(metrics.keys()):
                 if not key.startswith(f"{metric_key_prefix}_"):

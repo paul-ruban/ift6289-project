@@ -5,7 +5,11 @@ import argparse
 from functools import partial
 from src.config import TrainConfig
 from src.trainer import SQUADTrainer # noqa: E501
-from src.data import preprocess_train_dataset, preprocess_eval_dataset, post_process_function
+from src.data import (
+    preprocess_train_dataset, 
+    preprocess_eval_dataset, 
+    post_process_function
+)
 from datasets import load_dataset, load_metric
 from transformers import (
     TrainingArguments, 
@@ -29,7 +33,8 @@ def main():
     if train_config.teacher_model is not None:
         teacher_model = AutoModelForQuestionAnswering.from_pretrained(train_config.teacher_model)
     
-    dataset = load_dataset(train_config.dataset_name)
+    dataset_name = train_config.dataset_name
+    dataset = load_dataset(dataset_name)
 
     # Preprocess dataset
     processed_dataset = dataset.map(
@@ -56,17 +61,8 @@ def main():
         load_best_model_at_end=True
     )
 
-    if train_config.compute_metrics:
-        metric = load_metric(train_config.dataset_name)
-
-    def compute_metrics(x):
-        results = metric.compute(
-            predictions=x.predictions, references=x.label_ids)
-        # accomodate squad and squadv2 metrics
-        return {"exact_match": results["exact"] if results.get("exact") else results["exact_match"], 
-                "f1": results["f1"]}
-
-    eval_dataset = dataset["validation"].map(
+    # reprocess dataset for evaluation
+    eval_features = dataset["validation"].map(
         partial(preprocess_eval_dataset, tokenizer=tokenizer),
         batched=True,
         remove_columns=dataset["validation"].column_names
@@ -78,10 +74,11 @@ def main():
         distillation_method=train_config.distillation_method,
         args=training_args,
         train_dataset=processed_dataset["train"],
-        eval_dataset=eval_dataset,
-        eval_dataset_reference=dataset["validation"],
+        eval_dataset=processed_dataset["validation"],
+        eval_dataset_raw=dataset["validation"],
+        eval_features=eval_features,
         tokenizer=tokenizer,
-        compute_metrics=compute_metrics if train_config.compute_metrics else None,
+        compute_metrics=load_metric(dataset_name) if train_config.compute_metrics else None,
         post_process_function=post_process_function,
         dataset_name=train_config.dataset_name,
         callbacks = [EarlyStoppingCallback(early_stopping_patience=5)]
@@ -91,9 +88,7 @@ def main():
     trainer.train()
 
     # Evaluate model
-    trainer.evaluate(
-        eval_dataset=dataset_for_training["validation"],
-        eval_dataset_reference=processed_dataset["validation"])
+    trainer.evaluate()
 
     # Save model
     trainer.save_model()
