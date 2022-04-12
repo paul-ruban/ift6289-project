@@ -20,10 +20,12 @@ from transformers import (
 
 
 def main():
+    # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", help="Config file.", required=True)
     args = parser.parse_args()
 
+    # Load config
     train_config = TrainConfig.from_json(args.config)
 
     tokenizer = AutoTokenizer.from_pretrained(train_config.model)
@@ -42,7 +44,7 @@ def main():
         batched=True,
         remove_columns=dataset["train"].column_names
     )
-
+    
     training_args = TrainingArguments(
         output_dir=train_config.output_dir,
         evaluation_strategy=train_config.evaluation_strategy,
@@ -68,6 +70,7 @@ def main():
         remove_columns=dataset["validation"].column_names
     )
 
+    # Create trainer
     trainer = SQUADTrainer(
         model=model,
         teacher_model=teacher_model,

@@ -25,6 +25,30 @@ class TrainConfig:
         metric_for_best_model="f1",
         greater_is_better=True
     ):
+        """ TrainConfig
+        
+        Args:
+            model (str): model name
+            dataset_name (str): dataset name
+            teacher_model (str): teacher model name
+            distillation_method (str): distillation method name
+            output_dir (str): output directory
+            evaluation_strategy (str): evaluation strategy
+            eval_steps (int): evaluation steps
+            save_strategy (str): save strategy
+            save_steps (int): save steps
+            save_total_limit (int): save total limit
+            learning_rate (float): learning rate
+            per_device_train_batch_size (int): per device train batch size
+            per_device_eval_batch_size (int): per device eval batch size
+            num_train_epochs (int): num train epochs
+            weight_decay (float): weight decay
+            optim (str): optimizer
+            disable_tqdm (bool): disable progress bar
+            compute_metrics (bool): compute metrics
+            metric_for_best_model (str): metric for best model
+            greater_is_better (bool): greater is better
+        """
         self.model = model
         self.dataset_name = dataset_name
         self.teacher_model = teacher_model
@@ -47,6 +71,14 @@ class TrainConfig:
     
     @classmethod
     def from_json(cls, path):
+        """ Load from json file
+
+        Args:
+            path (str): path to json file
+        
+        Returns:
+            TrainConfig object
+        """
         with open(path) as f:
             config_dict = json.load(f)
         

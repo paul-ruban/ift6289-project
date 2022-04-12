@@ -9,6 +9,7 @@ from tqdm import tqdm
 MAX_LENGTH = 384
 STRIDE = 128
 
+
 def preprocess_train_dataset(examples, tokenizer, max_length=MAX_LENGTH, stride=STRIDE): 
     """ Function used for mapping SQUAD datapoints to model inputs. 
 
@@ -42,7 +43,7 @@ def preprocess_train_dataset(examples, tokenizer, max_length=MAX_LENGTH, stride=
     
     start_positions = []
     end_positions = []
-
+    
     for i, offsets in enumerate(offset_mapping):
         input_ids = inputs["input_ids"][i]
         cls_index = input_ids.index(tokenizer.cls_token_id)
@@ -155,10 +156,11 @@ def post_process_function(
     """ Function used for mapping model predictions to SQUAD datapoints.
     
     Args:
-        dataset (Dict): a datapoint or a batch of datapoints
-        dataset_reference (Dict): a datapoint or a batch of datapoints
-        predictions (List[Dict]): a list of model predictions
-        dataset_type (str): type of the dataset
+        examples (Union[Dict, Dict[List]]): a datapoint or a batch of datapoints
+        features (Union[Dict, Dict[List]]): a datapoint or a batch of datapoints
+        raw_predictions (Union[Dict, Dict[List]]): a datapoint or a batch of datapoints with the model predictions
+        tokenizer (PreTrainedTokenizer): tokenizer
+        dataset_type (str): type of the dataset (squad, squad_v2)
         n_best (int): number of best predictions to keep
         max_answer_length (int): max length of the answer
         

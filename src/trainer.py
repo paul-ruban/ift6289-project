@@ -989,7 +989,7 @@ class SQUADTrainer(Trainer):
             references = [
                 {"id": e["id"], 
                 "answers": e["answers"]} 
-                for e in self.eval_dataset_raw["validation"]
+                for e in self.eval_dataset_raw
             ]
             metrics = self.compute_metrics(predictions=predictions, references=references)
             # Prefix all keys with metric_key_prefix + '_'
