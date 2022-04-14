@@ -67,10 +67,6 @@ class TrainConfig:
         self.compute_metrics = compute_metrics
         self.metric_for_best_model = metric_for_best_model
 
-        # sanity check
-        if teacher_model is None:
-            assert (distillation_method is None), "If teacher_model is passed, distillation_method must be specified."
-
     @classmethod
     def from_json(cls, path):
         """ Load from json file
