@@ -69,10 +69,7 @@ class TrainConfig:
 
         # sanity check
         if teacher_model is None:
-            assert (distillation_method is not None), "If teacher_model is passed, distillation_method must be specified."
-            assert (compute_metrics is False), "If teacher_model is passed, compute_metrics must be False."
-        else:
-            assert (distillation_method is None), "If teacher_model is not passed, distillation_method must be None."
+            assert (distillation_method is None), "If teacher_model is passed, distillation_method must be specified."
 
     @classmethod
     def from_json(cls, path):
