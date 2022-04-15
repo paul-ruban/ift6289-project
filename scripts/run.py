@@ -1,7 +1,9 @@
 # Usage: python run.py -c ../config/test.json
 # Debug: python -m debugpy --listen 5678 run.py -c ../config/test.json
 
+import os
 import argparse
+import shutil
 from functools import partial
 from src.config import TrainConfig
 from src.trainer import SQUADTrainer # noqa: E501
@@ -27,6 +29,10 @@ def main():
 
     # Load config
     train_config = TrainConfig.from_json(args.config)
+
+    # copy config to log dir
+    os.mkdir(train_config.output_dir, exist_ok=True)
+    shutil.copy(args.config, os.path.join(train_config.output_dir, "trainer_config.json"))
 
     tokenizer = AutoTokenizer.from_pretrained(train_config.model)
     model = AutoModelForQuestionAnswering.from_pretrained(train_config.model)
