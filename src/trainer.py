@@ -69,6 +69,8 @@ from transformers.utils import logging
 
 from src.distillation import get_distillation
 
+from pruning import Pruner, L0_regularization_term
+
 
 logger = logging.get_logger(__name__)
 
@@ -706,6 +708,10 @@ class SQUADTrainer(Trainer):
             `Dict[str, torch.Tensor]`: Dictionary of losses
         """
         loss_dict = dict()
+
+        # PRUNING      
+        pruner = Pruner(model=model, max_sparsity=80, pruning_config=config["pruning_config"] )
+        model = pruner.prune(model)
 
         outputs = model(**inputs)
         loss_total = 0.0 # sum up batch loss

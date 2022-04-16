@@ -12,5 +12,15 @@
     "num_train_epochs": 10,
     "weight_decay": 0.01,
     "disable_tqdm": true,
-    "compute_metrics": "squad"
+    "compute_metrics": "squad",
+    "pruning_config": {
+        "random": {
+            "active": 1,
+            "rate": 0.3
+        },
+        "magnitude": {
+            "active": 0,
+            "number_pruned": 3
+        }
+    }
 }
