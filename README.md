@@ -12,4 +12,4 @@
 - [ ] Fine-tune with distillation (3 methods), use best model from above - Pavlo
 - [ ] Fine-tune with pruning (2-3 methods), use best model from above - Johan
 - [ ] Quantize models using quantization methods - NO training
-- Choose best in all sections and combine in the final model
+- [ ] Choose best in all sections and combine in the final model
