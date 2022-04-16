@@ -31,7 +31,7 @@ def main():
     train_config = TrainConfig.from_json(args.config)
 
     # copy config to log dir
-    os.mkdir(train_config.output_dir, exist_ok=True)
+    os.makedirs(train_config.output_dir, exist_ok=True)
     shutil.copy(args.config, os.path.join(train_config.output_dir, "trainer_config.json"))
 
     tokenizer = AutoTokenizer.from_pretrained(train_config.model)
