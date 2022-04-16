@@ -4,21 +4,19 @@ import torch.nn.utils.prune as prune
 import torch.nn.functional as F
 
 class Pruner:
-  def process_modules(self,get_biases=0):
+  def process_modules(self, model, get_biases=0):
     modules_to_prune = []
-    for name, param in self.model.named_parameters():
-      m = self.model.retrieve_modules_from_names([name])[0]
+    for name, param in model.named_parameters():
+      m = model.retrieve_modules_from_names([name])[0]
       modules_to_prune.append((m,"weight"))
       if get_biases:
         modules_to_prune.append((m,"bias"))
     return modules_to_prune
 
   def __init__(self, **args):
-    self.model = args["model"]
     self.max_sparsity = args["max_sparsity"]
     self.pruning_config = args["pruning_config"]
-
-    self.modules_to_prune = self.process_modules()
+    self.modules_to_prune = self.process_modules(args["model"])
 
   def model_sparsity(self):
     sparsity = 0
@@ -33,7 +31,7 @@ class Pruner:
   def is_prunable(self):
     return self.model_sparsity() < self.max_sparsity
 
-  def prune(self):
+  def prune(self, model):
     if self.is_prunable():
       if self.pruning_config["magnitude"]["active"]:
         prune.global_unstructured(
@@ -48,11 +46,7 @@ class Pruner:
           amount=self.pruning_config["random"]["rate"],
       )
 
-    return self.model
-
-
-  def save_serialized_model(self):
-    torch.save(self.model.state_dict(), ".")
+    return model
 
 
 def L0_regularization_term(self):
