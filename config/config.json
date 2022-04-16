@@ -19,7 +19,7 @@
             "rate": 0.3
         },
         "magnitude": {
-            "active": 1,
+            "active": 0,
             "number_pruned": 3
         }
     }
