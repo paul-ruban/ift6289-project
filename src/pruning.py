@@ -3,6 +3,85 @@ from torch import nn
 import torch.nn.utils.prune as prune
 import torch.nn.functional as F
 
+from transformers.models.distilbert.modeling_distilbert import MultiHeadSelfAttention
+import torch
+from typing import List, Dict, Tuple, Optional
+
+class MultiHeadSelfAttentionGated(MultiHeadSelfAttention):
+    def __init__(self, config):
+        super().__init__(config=config)
+        # self.g = torch.nn.Linear(torch.zeros(self.n_heads, config.dim, config.dim))
+        self.g = torch.nn.Linear(in_features=config.dim, out_features=config.dim)
+
+        # g = torch.Tensor(16, 12, 384, 64)
+        g = torch.randn(16, 12, 384, 64)
+        # g = torch.bernoulli(g)
+        self.g = torch.nn.Parameter(g)
+
+    def forward(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        mask: torch.Tensor,
+        head_mask: Optional[torch.Tensor] = None,
+        output_attentions: bool = False,
+    ) -> Tuple[torch.Tensor, ...]:
+        """
+        Parameters:
+            query: torch.tensor(bs, seq_length, dim)
+            key: torch.tensor(bs, seq_length, dim)
+            value: torch.tensor(bs, seq_length, dim)
+            mask: torch.tensor(bs, seq_length)
+        Returns:
+            weights: torch.tensor(bs, n_heads, seq_length, seq_length) Attention weights context: torch.tensor(bs,
+            seq_length, dim) Contextualized layer. Optional: only if `output_attentions=True`
+        """
+        bs, q_length, dim = query.size()
+        k_length = key.size(1)
+        # assert dim == self.dim, f'Dimensions do not match: {dim} input vs {self.dim} configured'
+        # assert key.size() == value.size()
+
+        dim_per_head = self.dim // self.n_heads
+
+        mask_reshp = (bs, 1, 1, k_length)
+
+        def shape(x: torch.Tensor) -> torch.Tensor:
+            """separate heads"""
+            return x.view(bs, -1, self.n_heads, dim_per_head).transpose(1, 2)
+
+        def unshape(x: torch.Tensor) -> torch.Tensor:
+            """group heads"""
+            return x.transpose(1, 2).contiguous().view(bs, -1, self.n_heads * dim_per_head)
+
+        q = shape(self.q_lin(query))  # (bs, n_heads, q_length, dim_per_head)
+        k = shape(self.k_lin(key))  # (bs, n_heads, k_length, dim_per_head)
+        v = shape(self.v_lin(value))  # (bs, n_heads, k_length, dim_per_head)
+
+        import math
+        q = q / math.sqrt(dim_per_head)  # (bs, n_heads, q_length, dim_per_head)
+        scores = torch.matmul(q, k.transpose(2, 3))  # (bs, n_heads, q_length, k_length)
+        mask = (mask == 0).view(mask_reshp).expand_as(scores)  # (bs, n_heads, q_length, k_length)
+        scores = scores.masked_fill(mask, -float("inf"))  # (bs, n_heads, q_length, k_length)
+
+        weights = nn.functional.softmax(scores, dim=-1)  # (bs, n_heads, q_length, k_length)
+        weights = self.dropout(weights)  # (bs, n_heads, q_length, k_length)
+
+        # Mask heads if we want to
+        if head_mask is not None:
+            weights = weights * head_mask
+
+        context = torch.matmul(weights, v)  # (bs, n_heads, q_length, dim_per_head)
+
+        context *= self.g
+        context = unshape(context)  # (bs, q_length, dim)
+        context = self.out_lin(context)  # (bs, q_length, dim)
+
+        if output_attentions:
+            return (context, weights)
+        else:
+            return (context,)
+
 class Pruner:
   def process_modules(self, model, get_biases=0):
     modules_to_prune = []
@@ -88,12 +167,30 @@ class Pruner:
     print(f"The model has been pruned!")
     return model
 
-
-def L0_regularization_term(self):
-  n_zeros = 0
-  for module in self.modules_to_prune:
+def L0_regularization_term(model, get_biases=0):
+  non_zeros = 0
+  modules_to_prune = []
+  for name, param in model.named_parameters():
+    m = model.retrieve_modules_from_names([name])[0]
+    modules_to_prune.append((m,"weight"))
+    if get_biases:
+      modules_to_prune.append((m,"bias"))
+  for module in modules_to_prune:
     module = module[0]
-    n_zeros += torch.sum(module.weight == 0)
-  return n_zeros
+    non_zeros += torch.sum(module.weight != 0)
+  return non_zeros
 
+def replace_layers(model, old, new):
+    for n, module in model.named_children():
+        if len(list(module.children())) > 0:
+            ## compound module, go inside it
+            replace_layers(module, old, new)
+        
+        if isinstance(module, MultiHeadSelfAttention):
+            setattr(model, n, new)
+
+
+def gate_model(model):
+  replace_layers(model, MultiHeadSelfAttention, MultiHeadSelfAttentionGated(config=model.config))
+  return model
 

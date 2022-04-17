@@ -69,7 +69,7 @@ from transformers.utils import logging
 
 from src.distillation import get_distillation
 
-from src.pruning import Pruner, L0_regularization_term
+from src.pruning import Pruner, L0_regularization_term, gate_model
 
 
 logger = logging.get_logger(__name__)
@@ -245,15 +245,18 @@ class SQUADTrainer(Trainer):
             self.loss_names += ["loss_distil"] 
 
         self.dataset_name = dataset_name
-        
+    
         self.pruning_config = pruning_config
         self.pruner = None
-        if pruning_config is not None:
-            self.pruner = Pruner(
-                model=model, 
-                max_sparsity=80, 
-                pruning_config=pruning_config
-            )  
+        if pruning_config["random"]["active"] or pruning_config["random"]["active"] or pruning_config["random"]["active"]:
+            if pruning_config["head"]["active"]:
+                self.model = gate_model(self.model)
+            else:
+                self.pruner = Pruner(
+                    model=model, 
+                    max_sparsity=80, 
+                    pruning_config=pruning_config
+                )  
 
     def train(
         self,
@@ -724,12 +727,6 @@ class SQUADTrainer(Trainer):
         """
         loss_dict = dict()
 
-        # # PRUNING    
-        # # TODO: do it every 1000 iterations  
-
-        # if self.pruner:
-        #     model = self.pruner.prune(model)
-
         outputs = model(**inputs)
         loss_total = 0.0 # sum up batch loss
         loss_qa = outputs["loss"]
@@ -744,6 +741,9 @@ class SQUADTrainer(Trainer):
                                        self.distillation(outputs["end_logits"], teacher_outputs["end_logits"])
             loss_dict["loss_distil"] = loss_distil  
             loss_total += loss_distil
+
+        if self.pruning_config["head"]["active"]:
+            loss_total += L0_regularization_term(model)
 
         loss_dict["loss_qa"] = loss_qa
         loss_dict["loss_total"] = loss_total
