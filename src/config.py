@@ -4,6 +4,7 @@ import json
 class TrainConfig:
     def __init__(
         self,
+        do_train,
         model,
         dataset_name,
         teacher_model=None,
@@ -27,6 +28,7 @@ class TrainConfig:
         """ TrainConfig
         
         Args:
+            do_train (bool): Whether to train the model.
             model (str): model name
             dataset_name (str): dataset name
             teacher_model (str): teacher model name
@@ -47,6 +49,7 @@ class TrainConfig:
             compute_metrics (bool): compute metrics
             metric_for_best_model (str): metric for best model
         """
+        self.do_train = do_train
         self.model = model
         self.dataset_name = dataset_name
         self.teacher_model = teacher_model

@@ -1,4 +1,5 @@
 {
+    "do_train": true,
     "model": "distilbert-base-uncased",
     "teacher_model": null,
     "data_path": "squad",
@@ -22,5 +23,5 @@
             "active": 0,
             "number_pruned": 3
         }
-    }
+    },
 }
