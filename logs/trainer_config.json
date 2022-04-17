@@ -1,5 +1,4 @@
 {
-    "do_train": true,
     "model": "google/bert_uncased_L-2_H-128_A-2",
     "teacher_model": null,
     "distillation_method": "soft_target",
@@ -28,5 +27,5 @@
             "active": 0,
             "number_pruned": 3
         }
-    },
+    }
 }
