@@ -112,6 +112,6 @@ class CorrelationCongruence(torch.nn.Module):
 
 		for p in range(self.p_order + 1):
 			corr_matrix += math.exp(-2 * self.gamma) * (2 * self.gamma)**p / \
-						math.factorial(p) * torch.pow(corr_matrix, p)
+						math.factorial(p) * torch.pow(similarity, p)
 
 		return corr_matrix
