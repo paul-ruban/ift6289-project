@@ -124,6 +124,7 @@ class SQUADTrainer(Trainer):
         post_process_function: Callable = None,
         dataset_name: str = "squad",
         pruning_config: Dict = None,
+        post_training_quantization: 0
     ):
         self.args = args
         # Seed must be set before instantiating the model when using model
@@ -925,6 +926,8 @@ class SQUADTrainer(Trainer):
 
         # prediction_loss_only = prediction_loss_only if prediction_loss_only is not None else args.prediction_loss_only
 
+        if self.post_training_quantization:
+            model = torch.quantization.quantize_dynamic(model)
         model = self._wrap_model(self.model, training=False)
 
         # if full fp16 or bf16 eval is wanted and this ``evaluation`` or ``predict`` isn't called

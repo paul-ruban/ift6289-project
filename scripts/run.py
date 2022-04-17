@@ -97,7 +97,8 @@ def main():
         post_process_function=post_process_function,
         dataset_name=train_config.dataset_name,
         callbacks = [EarlyStoppingCallback(early_stopping_patience=5)],
-        pruning_config=train_config.pruning_config
+        pruning_config=train_config.pruning_config,
+        post_training_quantization=train_config.post_training_quantization
     )
 
     # Train model

@@ -25,6 +25,7 @@ class TrainConfig:
         compute_metrics=False,
         metric_for_best_model="loss",
         pruning_config=None,
+        post_training_quantization=0
     ):
         """ TrainConfig
         
@@ -72,6 +73,7 @@ class TrainConfig:
         self.compute_metrics = compute_metrics
         self.metric_for_best_model = metric_for_best_model
         self.pruning_config = pruning_config
+        self.post_training_quantization = post_training_quantization
 
     @classmethod
     def from_json(cls, path):
