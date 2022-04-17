@@ -69,7 +69,7 @@ from transformers.utils import logging
 
 from src.distillation import get_distillation
 
-from pruning import Pruner, L0_regularization_term
+from src.pruning import Pruner, L0_regularization_term
 
 
 logger = logging.get_logger(__name__)
@@ -102,6 +102,7 @@ class SQUADTrainer(Trainer):
         optimizers Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR]: A tuple containing the optimizer and the scheduler.
         postprocess_predictions (Callable[[List[EvalPrediction]], List[Dict]]): A function to postprocess the predictions.
         dataset_name (str): The name of the dataset.
+        pruning_config (dict): The pruning configuration.
         
         Returns:
             :obj:`TrainOutput` : The loss and log metrics for the model."""
@@ -122,6 +123,7 @@ class SQUADTrainer(Trainer):
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         post_process_function: Callable = None,
         dataset_name: str = "squad",
+        pruning_config: Dict = None,
     ):
         self.args = args
         # Seed must be set before instantiating the model when using model
@@ -242,7 +244,16 @@ class SQUADTrainer(Trainer):
         if self.do_distillation:
             self.loss_names += ["loss_distil"] 
 
-        self.dataset_name = dataset_name     
+        self.dataset_name = dataset_name
+        
+        self.pruning_config = pruning_config
+        self.pruner = None
+        if pruning_config is not None:
+            self.pruner = Pruner(
+                model=model, 
+                max_sparsity=80, 
+                pruning_config=pruning_config
+            )  
 
     def train(
         self,
@@ -710,8 +721,8 @@ class SQUADTrainer(Trainer):
         loss_dict = dict()
 
         # PRUNING      
-        pruner = Pruner(model=model, max_sparsity=80, pruning_config=config["pruning_config"] )
-        model = pruner.prune(model)
+        if self.pruner:
+            model = self.pruner.prune(model)
 
         outputs = model(**inputs)
         loss_total = 0.0 # sum up batch loss

@@ -22,7 +22,8 @@ class TrainConfig:
         optim="adamw",
         disable_tqdm=True,
         compute_metrics=False,
-        metric_for_best_model="loss"
+        metric_for_best_model="loss",
+        pruning_config=None,
     ):
         """ TrainConfig
         
@@ -46,6 +47,7 @@ class TrainConfig:
             disable_tqdm (bool): disable progress bar
             compute_metrics (bool): compute metrics
             metric_for_best_model (str): metric for best model
+            pruning_config (dict): pruning config
         """
         self.model = model
         self.dataset_name = dataset_name
@@ -66,6 +68,7 @@ class TrainConfig:
         self.disable_tqdm = disable_tqdm
         self.compute_metrics = compute_metrics
         self.metric_for_best_model = metric_for_best_model
+        self.pruning_config = pruning_config
 
     @classmethod
     def from_json(cls, path):
