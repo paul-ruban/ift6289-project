@@ -1,13 +1,14 @@
 {
+    "do_train": true,
     "model": "google/bert_uncased_L-2_H-128_A-2",
     "teacher_model": null,
     "distillation_method": "soft_target",
-    "dataset_name": "squad_v2",
+    "dataset_name": "squad",
     "output_dir": "../logs",
     "evaluation_strategy": "steps",
-    "eval_steps": 1000,
+    "eval_steps": 50,
     "save_strategy": "steps",
-    "save_steps": 1000,
+    "save_steps": 3000,
     "save_total_limit": 3,
     "learning_rate": 3e-5,
     "optim": "adamw_torch",
@@ -19,12 +20,13 @@
     "compute_metrics": true,
     "metric_for_best_model": "f1",
     "pruning_config": {
+        "max_sparsity":0.3,
         "random": {
-            "active": 1,
-            "rate": 0.3
+            "active": 0,
+            "rate": 0.01
         },
         "magnitude": {
-            "active": 0,
+            "active": 1,
             "number_pruned": 3
         }
     }

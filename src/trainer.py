@@ -465,6 +465,10 @@ class SQUADTrainer(Trainer):
 
             step = -1
             for step, inputs in enumerate(epoch_iterator):
+                
+                # PRUNING    
+                if self.pruner and step % 100 == 0:
+                    self.model = self.pruner.prune(self.model)
 
                 # Skip past any already trained steps if resuming training
                 if steps_trained_in_current_epoch > 0:
@@ -563,7 +567,7 @@ class SQUADTrainer(Trainer):
 
             if self.control.should_training_stop:
                 break
-
+              
         if args.past_index and hasattr(self, "_past"):
             # Clean the state at the end of training
             delattr(self, "_past")
@@ -720,9 +724,11 @@ class SQUADTrainer(Trainer):
         """
         loss_dict = dict()
 
-        # PRUNING      
-        if self.pruner:
-            model = self.pruner.prune(model)
+        # # PRUNING    
+        # # TODO: do it every 1000 iterations  
+
+        # if self.pruner:
+        #     model = self.pruner.prune(model)
 
         outputs = model(**inputs)
         loss_total = 0.0 # sum up batch loss
