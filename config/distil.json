@@ -4,7 +4,7 @@
     "teacher_model": "deepset/bert-base-uncased-squad2",
     "distillation_method": "soft_target",
     "dataset_name": "squad_v2",
-    "output_dir": "/content/gdrive/MyDrive/IFT6289/project/squad_v2/bert_base",
+    "output_dir": "/content/gdrive/MyDrive/IFT6289/project/squad_v2/bert_l_4_distil",
     "evaluation_strategy": "steps",
     "eval_steps": 1000,
     "save_strategy": "steps",
