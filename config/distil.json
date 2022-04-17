@@ -1,7 +1,7 @@
 {
     "do_train": true,
-    "model": "bert-base-uncased",
-    "teacher_model": null,
+    "model": "google/bert_uncased_L-4_H-768_A-12",
+    "teacher_model": "deepset/bert-base-uncased-squad2",
     "distillation_method": "soft_target",
     "dataset_name": "squad_v2",
     "output_dir": "/content/gdrive/MyDrive/IFT6289/project/squad_v2/bert_base",
