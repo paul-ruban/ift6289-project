@@ -78,7 +78,7 @@ class CorrelationCongruence(torch.nn.Module):
 		"""
 		super().__init__()
 		self.gamma = gamma
-		self.P_order = p_order
+		self.p_order = p_order
 
 	def forward(self, input, target):
 		""" Compute the loss for the SoftTarget distillation method.
