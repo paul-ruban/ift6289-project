@@ -1045,6 +1045,7 @@ class SQUADTrainer(Trainer):
 
         # Metrics!
         if self.post_process_function is not None and self.compute_metrics is not None:
+            logger.info("Computing Metrics!")
             eval_preds = self.post_process_function(
                 examples=self.eval_dataset_raw,
                 features=self.eval_features, 
