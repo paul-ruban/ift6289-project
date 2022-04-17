@@ -1,4 +1,5 @@
 {
+    "do_train": true,
     "model": "bert-base-uncased",
     "teacher_model": null,
     "distillation_method": "soft_target",
