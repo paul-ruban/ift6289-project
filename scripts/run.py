@@ -101,7 +101,8 @@ def main():
     )
 
     # Train model
-    trainer.train()
+    if train_config.do_train:
+        trainer.train()
 
     # Evaluate model
     trainer.evaluate()
