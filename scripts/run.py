@@ -1,7 +1,13 @@
 # Usage: python run.py -c ../config/test.json
-# Debug: python -m debugpy --listen 5678 run.py -c ../config/test.json
+# Debug: python -m debugpy --listen 5678 run.py -c ../config/config.json
 
 import os
+import sys
+# Adds project to path
+project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_dir not in sys.path:
+    sys.path.append(project_dir)
+
 import argparse
 import shutil
 from functools import partial
@@ -90,7 +96,8 @@ def main():
         compute_metrics=load_metric(dataset_name).compute if train_config.compute_metrics else None,
         post_process_function=post_process_function,
         dataset_name=train_config.dataset_name,
-        callbacks = [EarlyStoppingCallback(early_stopping_patience=5)]
+        callbacks = [EarlyStoppingCallback(early_stopping_patience=5)],
+        pruning_config=train_config.pruning_config
     )
 
     # Train model
@@ -103,6 +110,6 @@ def main():
     # Save model
     trainer.save_model()
 
-
+# Run main
 if __name__ == "__main__":
     main()
