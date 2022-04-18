@@ -727,8 +727,13 @@ class SQUADTrainer(Trainer):
         """
         loss_dict = dict()
 
-        outputs = model(**inputs)
         loss_total = 0.0 # sum up batch loss
+        if self.pruning_config["head"]["active"]:
+            outputs, L0reg = model(**inputs)
+            loss_total += 1e-1*L0reg/(16)
+        else:    
+            outputs = model(**inputs)
+        
         loss_qa = outputs["loss"]
         loss_total += loss_qa
         loss_dict = dict()
@@ -742,9 +747,7 @@ class SQUADTrainer(Trainer):
             loss_dict["loss_distil"] = loss_distil  
             loss_total += loss_distil
 
-        if self.pruning_config["head"]["active"]:
-            loss_total += L0_regularization_term(model)
-
+      
         loss_dict["loss_qa"] = loss_qa
         loss_dict["loss_total"] = loss_total
 
@@ -932,7 +935,7 @@ class SQUADTrainer(Trainer):
         # prediction_loss_only = prediction_loss_only if prediction_loss_only is not None else args.prediction_loss_only
 
         model = self._wrap_model(self.model, training=False)
-
+        
         # if full fp16 or bf16 eval is wanted and this ``evaluation`` or ``predict`` isn't called
         # while ``train`` is running, cast it to the right dtype first and then put on device
         if not self.is_in_train:

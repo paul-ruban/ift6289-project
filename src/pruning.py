@@ -7,6 +7,65 @@ from transformers.models.distilbert.modeling_distilbert import MultiHeadSelfAtte
 import torch
 from typing import List, Dict, Tuple, Optional
 
+
+import math
+
+import torch
+from torch import nn
+from torch.autograd import Variable
+from torch.nn import functional as F
+
+
+def hard_sigmoid(x):
+    return torch.min(torch.max(x, torch.zeros_like(x)), torch.ones_like(x))
+
+
+class _L0Norm(nn.Module):
+
+    def __init__(self, origin, loc_mean=0, loc_sdev=0.01, beta=2 / 3, gamma=-0.1,
+                 zeta=1.1, fix_temp=True):
+        """
+        Base class of layers using L0 Norm
+        :param origin: original layer such as nn.Linear(..), nn.Conv2d(..)
+        :param loc_mean: mean of the normal distribution which generates initial location parameters
+        :param loc_sdev: standard deviation of the normal distribution which generates initial location parameters
+        :param beta: initial temperature parameter
+        :param gamma: lower bound of "stretched" s
+        :param zeta: upper bound of "stretched" s
+        :param fix_temp: True if temperature is fixed
+        """
+        super(_L0Norm, self).__init__()
+        self._origin = origin
+        self._size = self._origin.weight.size()
+        self.loc = nn.Parameter(torch.zeros(self._size).normal_(loc_mean, loc_sdev))
+        self.temp = beta if fix_temp else nn.Parameter(torch.zeros(1).fill_(beta))
+        self.register_buffer("uniform", torch.zeros(self._size))
+        self.gamma = gamma
+        self.zeta = zeta
+        self.gamma_zeta_ratio = math.log(-gamma / zeta)
+
+    def _get_mask(self):
+        if self.training:
+            self.uniform.uniform_()
+            u = Variable(self.uniform)
+            s = F.sigmoid((torch.log(u) - torch.log(1 - u) + self.loc) / self.temp)
+            s = s * (self.zeta - self.gamma) + self.gamma
+            penalty = F.sigmoid(self.loc - self.temp * self.gamma_zeta_ratio).sum()
+        else:
+            s = F.sigmoid(self.loc) * (self.zeta - self.gamma) + self.gamma
+            penalty = 0
+        return hard_sigmoid(s), penalty
+
+
+class L0Linear(_L0Norm):
+    def __init__(self, in_features, out_features, bias=True, **kwargs):
+        super(L0Linear, self).__init__(nn.Linear(in_features, out_features, bias=bias), **kwargs)
+
+    def forward(self, input):
+        mask, penalty = self._get_mask()
+        return F.linear(input, self._origin.weight * mask, self._origin.bias), penalty
+
+
 class MultiHeadSelfAttentionGated(MultiHeadSelfAttention):
     def __init__(self, config):
         super().__init__(config=config)
@@ -17,6 +76,7 @@ class MultiHeadSelfAttentionGated(MultiHeadSelfAttention):
         g = torch.randn(16, 12, 384, 64)
         # g = torch.bernoulli(g)
         self.g = torch.nn.Parameter(g)
+        self.gates = L0Linear(64, 64)
 
     def forward(
         self,
@@ -58,7 +118,6 @@ class MultiHeadSelfAttentionGated(MultiHeadSelfAttention):
         k = shape(self.k_lin(key))  # (bs, n_heads, k_length, dim_per_head)
         v = shape(self.v_lin(value))  # (bs, n_heads, k_length, dim_per_head)
 
-        import math
         q = q / math.sqrt(dim_per_head)  # (bs, n_heads, q_length, dim_per_head)
         scores = torch.matmul(q, k.transpose(2, 3))  # (bs, n_heads, q_length, k_length)
         mask = (mask == 0).view(mask_reshp).expand_as(scores)  # (bs, n_heads, q_length, k_length)
@@ -73,14 +132,19 @@ class MultiHeadSelfAttentionGated(MultiHeadSelfAttention):
 
         context = torch.matmul(weights, v)  # (bs, n_heads, q_length, dim_per_head)
 
-        context *= self.g
+        context = context.reshape(16*12*384, 64)
+
+        #Apply the gates (L0Linear returns tensor and L0 penalty)
+        context, L0penalty = L0Linear(context)[0]
+        context = context.reshape(16,12,384,64)
+
         context = unshape(context)  # (bs, q_length, dim)
         context = self.out_lin(context)  # (bs, q_length, dim)
 
-        if output_attentions:
-            return (context, weights)
-        else:
-            return (context,)
+        # if output_attentions:
+        return (context, L0penalty)
+        # else:
+        #     return (context,)
 
 class Pruner:
   def process_modules(self, model, get_biases=0):
@@ -167,7 +231,7 @@ class Pruner:
     print(f"The model has been pruned!")
     return model
 
-def L0_regularization_term(model, get_biases=0):
+def L0_regularization_term(model, get_biases=1):
   non_zeros = 0
   modules_to_prune = []
   for name, param in model.named_parameters():
