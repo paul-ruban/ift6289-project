@@ -248,13 +248,13 @@ class SQUADTrainer(Trainer):
     
         self.pruning_config = pruning_config
         self.pruner = None
-        if pruning_config["random"]["active"] or pruning_config["random"]["active"] or pruning_config["random"]["active"]:
+        if pruning_config["random"]["active"] or pruning_config["magnitude"]["active"] or pruning_config["head"]["active"]:
             if pruning_config["head"]["active"]:
                 self.model = gate_model(self.model)
             else:
                 self.pruner = Pruner(
                     model=model, 
-                    max_sparsity=80, 
+                    max_sparsity=pruning_config["max_sparsity"], 
                     pruning_config=pruning_config
                 )  
 
