@@ -1,8 +1,9 @@
 {
-    "model": "google/bert_uncased_L-2_H-128_A-2",
+    "do_train": true,
+    "model": "distilbert-base-uncased",
     "teacher_model": null,
     "distillation_method": "soft_target",
-    "dataset_name": "squad_v2",
+    "dataset_name": "squad",
     "output_dir": "../logs",
     "evaluation_strategy": "steps",
     "eval_steps": 1000,
@@ -19,13 +20,18 @@
     "compute_metrics": true,
     "metric_for_best_model": "f1",
     "pruning_config": {
+        "max_sparsity":0.3,
         "random": {
-            "active": 1,
-            "rate": 0.3
+            "active": 0,
+            "rate": 0.01
         },
         "magnitude": {
             "active": 0,
             "number_pruned": 3
+        },
+        "head":{
+            "active": 1
+
         }
     }
 }

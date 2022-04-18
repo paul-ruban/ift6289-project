@@ -1,4 +1,4 @@
-# Usage: python run.py -c ../config/test.json
+# Usage: python run.py -c ../config/config.json
 # Debug: python -m debugpy --listen 5678 run.py -c ../config/config.json
 
 import os
@@ -98,7 +98,7 @@ def main():
         post_process_function=post_process_function,
         dataset_name=train_config.dataset_name,
         callbacks = [EarlyStoppingCallback(early_stopping_patience=5)],
-        pruning_config=train_config.pruning_config,
+        pruning_config=train_config.pruning_config
     )
 
     # Train model
@@ -118,6 +118,7 @@ def main():
     # Save model
     trainer.save_model()
 
+
 def get_dtype(dtype):
     if dtype == "qint8":
         return torch.qint8
@@ -130,6 +131,7 @@ def get_dtype(dtype):
     else:
         raise ValueError("Invalid dtype.")
 
+        
 # Run main
 if __name__ == "__main__":
     main()
