@@ -20,7 +20,7 @@ from src.data import (
     preprocess_eval_dataset, 
     post_process_function
 )
-from src.quantization import is_quantized, infer_quantization_dtype
+from src.quantization import is_quantized, infer_quantization_dtype, get_dtype
 from datasets import load_dataset, load_metric
 from transformers import (
     TrainingArguments, 
