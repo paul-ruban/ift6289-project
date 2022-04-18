@@ -255,7 +255,8 @@ class Pruner:
         )
         # make pruning permanent
         for module, name in modules_to_prune:
-          prune.remove(module, name)
+          if prune.is_pruned(module):
+            prune.remove(module, name)
     
     print(f"The model has been pruned!")
     return model
