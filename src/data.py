@@ -190,6 +190,9 @@ def post_process_function(
         # Looping through all the features associated to the current example.
         for feature_index in feature_indices:
             # We grab the predictions of the model for this feature.
+            # TODO : check if we can use the start_logits and end_logits directly.
+            if feature_index >= len(all_start_logits):
+                feature_index = len(all_start_logits) - 1
             start_logits = all_start_logits[feature_index]
             end_logits = all_end_logits[feature_index]
             # This is what will allow us to map some the positions in our logits to span of texts in the original

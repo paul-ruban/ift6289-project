@@ -1,0 +1,9 @@
+{
+    "do_train": false,
+    "model": "google/bert_uncased_L-2_H-128_A-2",
+    "dataset_name": "squad",
+    "output_dir": "../logs",
+    "per_device_eval_batch_size": 32,
+    "disable_tqdm": false,
+    "compute_metrics": true
+}

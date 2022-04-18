@@ -69,7 +69,11 @@ from transformers.utils import logging
 
 from src.distillation import get_distillation
 
+<<<<<<< HEAD
+from src.pruning import Pruner, L0_regularization_term, gate_model
+=======
 from src.pruning import Pruner, L0_regularization_term
+>>>>>>> main
 
 
 logger = logging.get_logger(__name__)
@@ -245,6 +249,22 @@ class SQUADTrainer(Trainer):
             self.loss_names += ["loss_distil"] 
 
         self.dataset_name = dataset_name
+<<<<<<< HEAD
+
+        # set up the pruning config    
+        self.pruning_config = pruning_config
+        self.pruner = None
+        if pruning_config:
+            if pruning_config["head"]["active"]:
+                self.model = gate_model(self.model)
+
+            if pruning_config["random"]["active"] or pruning_config["magnitude"]["active"]:
+                self.pruner = Pruner(
+                    model=self.model, 
+                    max_sparsity=pruning_config["max_sparsity"], 
+                    pruning_config=pruning_config
+                )  
+=======
         
         self.pruning_config = pruning_config
         self.pruner = None
@@ -254,6 +274,7 @@ class SQUADTrainer(Trainer):
                 max_sparsity=80, 
                 pruning_config=pruning_config
             )  
+>>>>>>> main
 
     def train(
         self,
@@ -465,6 +486,10 @@ class SQUADTrainer(Trainer):
 
             step = -1
             for step, inputs in enumerate(epoch_iterator):
+                
+                # PRUNING    
+                if self.pruner and step % self.pruning_config["every_x_step"] == 0:
+                    self.model = self.pruner.prune(self.model)
 
                 # Skip past any already trained steps if resuming training
                 if steps_trained_in_current_epoch > 0:
@@ -563,7 +588,7 @@ class SQUADTrainer(Trainer):
 
             if self.control.should_training_stop:
                 break
-
+              
         if args.past_index and hasattr(self, "_past"):
             # Clean the state at the end of training
             delattr(self, "_past")
@@ -720,12 +745,13 @@ class SQUADTrainer(Trainer):
         """
         loss_dict = dict()
 
-        # PRUNING      
-        if self.pruner:
-            model = self.pruner.prune(model)
-
-        outputs = model(**inputs)
+        if self.pruning_config and self.pruning_config["head"]["active"]:
+            outputs = model(output_attentions=True, **inputs)
+        else:
+            outputs = model(**inputs)
+        
         loss_total = 0.0 # sum up batch loss
+
         loss_qa = outputs["loss"]
         loss_total += loss_qa
         loss_dict = dict()
@@ -738,7 +764,13 @@ class SQUADTrainer(Trainer):
                                        self.distillation(outputs["end_logits"], teacher_outputs["end_logits"])
             loss_dict["loss_distil"] = loss_distil  
             loss_total += loss_distil
+        
+        if "attentions" in outputs:
+            l0_loss = 0.001 * sum(outputs["attentions"]) / len(outputs["attentions"])
+            loss_dict["l0_loss"] = l0_loss
+            loss_total += l0_loss
 
+      
         loss_dict["loss_qa"] = loss_qa
         loss_dict["loss_total"] = loss_total
 
@@ -929,7 +961,7 @@ class SQUADTrainer(Trainer):
         # prediction_loss_only = prediction_loss_only if prediction_loss_only is not None else args.prediction_loss_only
 
         model = self._wrap_model(self.model, training=False)
-
+        
         # if full fp16 or bf16 eval is wanted and this ``evaluation`` or ``predict`` isn't called
         # while ``train`` is running, cast it to the right dtype first and then put on device
         if not self.is_in_train:

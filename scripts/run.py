@@ -1,8 +1,9 @@
-# Usage: python run.py -c ../config/test.json
+# Usage: python run.py -c ../config/config.json
 # Debug: python -m debugpy --listen 5678 run.py -c ../config/config.json
 
 import os
 import sys
+import json
 # Adds project to path
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_dir not in sys.path:
@@ -19,10 +20,12 @@ from src.data import (
     preprocess_eval_dataset, 
     post_process_function
 )
+from src.quantization import is_quantized, infer_quantization_dtype, get_dtype
 from datasets import load_dataset, load_metric
 from transformers import (
     TrainingArguments, 
     AutoModelForQuestionAnswering,
+    AutoConfig,
     AutoTokenizer,
     EarlyStoppingCallback
 )
@@ -42,8 +45,26 @@ def main():
     shutil.copy(args.config, os.path.join(train_config.output_dir, "trainer_config.json"))
 
     tokenizer = AutoTokenizer.from_pretrained(train_config.model)
-    model = AutoModelForQuestionAnswering.from_pretrained(train_config.model)
     
+    quantized_flag = False
+ 
+    if not os.path.isdir(train_config.model):
+        model = AutoModelForQuestionAnswering.from_pretrained(train_config.model)
+    else:
+        model_config = AutoConfig.from_pretrained(train_config.model)
+        model = AutoModelForQuestionAnswering.from_config(model_config)
+
+        # Load state dict
+        state_dict = torch.load(os.path.join(train_config.model, "pytorch_model.bin"))
+        if is_quantized(state_dict):
+            quantized_flag = True
+            quantized_dtype = infer_quantization_dtype(state_dict)
+            model = torch.quantization.quantize_dynamic(model, dtype=quantized_dtype)
+        
+        load_result = model.load_state_dict(state_dict)
+        print(load_result)
+
+
     teacher_model = None
     if train_config.teacher_model is not None:
         teacher_model = AutoModelForQuestionAnswering.from_pretrained(train_config.teacher_model)
@@ -98,7 +119,7 @@ def main():
         post_process_function=post_process_function,
         dataset_name=train_config.dataset_name,
         callbacks = [EarlyStoppingCallback(early_stopping_patience=5)],
-        pruning_config=train_config.pruning_config,
+        pruning_config=train_config.pruning_config
     )
 
     # Train model
@@ -118,17 +139,6 @@ def main():
     # Save model
     trainer.save_model()
 
-def get_dtype(dtype):
-    if dtype == "qint8":
-        return torch.qint8
-    elif dtype == "qint32":
-        return torch.qint32
-    elif dtype == "qint64":
-        return torch.qint64
-    elif dtype == "float16":
-        return torch.float16
-    else:
-        raise ValueError("Invalid dtype.")
 
 # Run main
 if __name__ == "__main__":

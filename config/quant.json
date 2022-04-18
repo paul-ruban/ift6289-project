@@ -1,24 +1,5 @@
 {
-    "do_train": false,
-    "model": "/content/gdrive/MyDrive/IFT6289/project/squad/bert_l_4",
-    "teacher_model": null,
-    "distillation_method": "soft_target",
-    "dataset_name": "squad",
-    "output_dir": "/content/gdrive/MyDrive/IFT6289/project/squad/bert_l_4_quant",
-    "evaluation_strategy": "steps",
-    "eval_steps": 1000,
-    "save_strategy": "steps",
-    "save_steps": 1000,
-    "save_total_limit": 3,
-    "learning_rate": 3e-5,
-    "optim": "adamw_torch",
-    "per_device_train_batch_size": 16,
-    "per_device_eval_batch_size": 16,
-    "num_train_epochs": 3,
-    "weight_decay": 0.01,
-    "disable_tqdm": false,
-    "compute_metrics": true,
-    "metric_for_best_model": "f1",
-    "pruning_config": null,
-    "quantize": "qint8"
+    "input_dir":  "/home/pavlo/bert_uncased_L-2_H-128_A-2/",
+    "dtype": "qint8",
+    "output_dir":  "/home/pavlo/bert_uncased_L-2_H-128_A-2-quantized/"
 }
