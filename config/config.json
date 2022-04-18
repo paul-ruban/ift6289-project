@@ -28,5 +28,6 @@
             "active": 0,
             "number_pruned": 3
         }
-    }
+    },
+    "quantize": "qint8"
 }
