@@ -254,6 +254,8 @@ class Pruner:
             pruning_method=prune.RandomUnstructured,
             amount=self.pruning_config["random"]["rate"],
         )
+        # make pruning permanent
+        prune.remove(modules_to_prune[0], modules_to_prune[1])
     
     print(f"The model has been pruned!")
     return model
