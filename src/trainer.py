@@ -245,30 +245,20 @@ class SQUADTrainer(Trainer):
             self.loss_names += ["loss_distil"] 
 
         self.dataset_name = dataset_name
-############################
-    
+
+        # set up the pruning config    
         self.pruning_config = pruning_config
         self.pruner = None
-        if pruning_config["random"]["active"] or pruning_config["magnitude"]["active"] or pruning_config["head"]["active"]:
+        if pruning_config:
             if pruning_config["head"]["active"]:
                 self.model = gate_model(self.model)
-            else:
+
+            if pruning_config["random"]["active"] or pruning_config["magnitude"]["active"]:
                 self.pruner = Pruner(
-                    model=model, 
+                    model=self.model, 
                     max_sparsity=pruning_config["max_sparsity"], 
                     pruning_config=pruning_config
                 )  
-
-        
-        self.pruning_config = pruning_config
-        self.pruner = None
-        if pruning_config is not None:
-            self.pruner = Pruner(
-                model=model, 
-                max_sparsity=80, 
-                pruning_config=pruning_config
-            )  
-####################################
 
     def train(
         self,
@@ -739,24 +729,13 @@ class SQUADTrainer(Trainer):
         """
         loss_dict = dict()
 
-        ######################################################
-        # PRUNING      
-        if self.pruner:
-            model = self.pruner.prune(model)
-
-        outputs = model(**inputs)
-
-        
-        loss_total = 0.0 # sum up batch loss
         if self.pruning_config["head"]["active"]:
             outputs = model(output_attentions=True, **inputs)
-            L0reg = outputs.attentions
-            loss_total += 0.1 * sum(L0reg).mean()
-        else:    
+        else:
             outputs = model(**inputs)
-            
-        #############################################################
         
+        loss_total = 0.0 # sum up batch loss
+
         loss_qa = outputs["loss"]
         loss_total += loss_qa
         loss_dict = dict()
@@ -769,6 +748,11 @@ class SQUADTrainer(Trainer):
                                        self.distillation(outputs["end_logits"], teacher_outputs["end_logits"])
             loss_dict["loss_distil"] = loss_distil  
             loss_total += loss_distil
+        
+        if "attentions" in outputs:
+            l0_loss = 0.001 * sum(outputs["attentions"]) / len(outputs["attentions"])
+            loss_dict["l0_loss"] = l0_loss
+            loss_total += l0_loss
 
       
         loss_dict["loss_qa"] = loss_qa
