@@ -125,24 +125,21 @@ def main():
     # Train model
     if train_config.do_train:
         trainer.train()
+
+    if train_config.quantize:
+        trainer.model = torch.quantization.quantize_dynamic(
+            trainer.model, 
+            dtype=get_dtype(train_config.quantize)
+        )
     
     # Evaluate model
-    final_metrics = trainer.evaluate()
+    trainer.evaluate()
 
-    # Save metrics
-    metrics_output_file = os.path.join(train_config.output_dir, "final_metrics.txt")
-    with open(metrics_output_file, "w") as f:
-        json.dump(final_metrics, f, indent=4)
 
     # Save model
-    if quantized_flag:
-        torch.save(
-            obj=trainer.model.state_dict(), 
-            f=os.path.join(train_config.output_dir, "pytorch_model.bin")
-        )
-    else:
-        trainer.save_model()
-        
+    trainer.save_model()
+
+
 # Run main
 if __name__ == "__main__":
     main()

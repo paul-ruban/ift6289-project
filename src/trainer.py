@@ -69,7 +69,11 @@ from transformers.utils import logging
 
 from src.distillation import get_distillation
 
+<<<<<<< HEAD
 from src.pruning import Pruner, L0_regularization_term, gate_model
+=======
+from src.pruning import Pruner, L0_regularization_term
+>>>>>>> main
 
 
 logger = logging.get_logger(__name__)
@@ -245,6 +249,7 @@ class SQUADTrainer(Trainer):
             self.loss_names += ["loss_distil"] 
 
         self.dataset_name = dataset_name
+<<<<<<< HEAD
 
         # set up the pruning config    
         self.pruning_config = pruning_config
@@ -259,6 +264,17 @@ class SQUADTrainer(Trainer):
                     max_sparsity=pruning_config["max_sparsity"], 
                     pruning_config=pruning_config
                 )  
+=======
+        
+        self.pruning_config = pruning_config
+        self.pruner = None
+        if pruning_config is not None:
+            self.pruner = Pruner(
+                model=model, 
+                max_sparsity=80, 
+                pruning_config=pruning_config
+            )  
+>>>>>>> main
 
     def train(
         self,

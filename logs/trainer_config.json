@@ -1,5 +1,4 @@
 {
-    "do_train": true,
     "model": "google/bert_uncased_L-2_H-128_A-2",
     "teacher_model": null,
     "distillation_method": "soft_target",
@@ -20,23 +19,13 @@
     "compute_metrics": true,
     "metric_for_best_model": "f1",
     "pruning_config": {
-        "every_x_step":1000,
-        "max_sparsity":0.3,
         "random": {
-            "active": 0,
-            "rate": 0.01
+            "active": 1,
+            "rate": 0.3
         },
         "magnitude": {
             "active": 0,
             "number_pruned": 3
-        },
-        "head":{
-            "active":1
         }
-    },
-<<<<<<< HEAD
-    "quantize": null
-=======
-    "quantize": "qint8"
->>>>>>> main
+    }
 }
