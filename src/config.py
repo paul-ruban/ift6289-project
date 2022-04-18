@@ -25,6 +25,7 @@ class TrainConfig:
         compute_metrics=False,
         metric_for_best_model="loss",
         pruning_config=None,
+        quantize = None
     ):
         """ TrainConfig
         
@@ -50,6 +51,7 @@ class TrainConfig:
             compute_metrics (bool): compute metrics
             metric_for_best_model (str): metric for best model
             pruning_config (dict): pruning config
+            quantize (None, str): quantize
         """
         self.do_train = do_train
         self.model = model
@@ -72,6 +74,7 @@ class TrainConfig:
         self.compute_metrics = compute_metrics
         self.metric_for_best_model = metric_for_best_model
         self.pruning_config = pruning_config
+        self.quantize = quantize
 
     @classmethod
     def from_json(cls, path):
