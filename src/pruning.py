@@ -173,7 +173,6 @@ class MultiHeadSelfAttentionGated(BertSelfAttention):
         return outputs
 
 
-
 class Pruner:
   def process_modules(self, model, get_biases=0):
     modules_to_prune = []

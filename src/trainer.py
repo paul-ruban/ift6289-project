@@ -749,6 +749,7 @@ class SQUADTrainer(Trainer):
             loss_dict["loss_distil"] = loss_distil  
             loss_total += loss_distil
         
+        # add regularization loss
         if "attentions" in outputs:
             l0_loss = 0.001 * sum(outputs["attentions"]) / len(outputs["attentions"])
             loss_dict["l0_loss"] = l0_loss
