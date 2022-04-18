@@ -33,10 +33,5 @@
         "head":{
             "active":1
         }
-    },
-<<<<<<< HEAD
-    "quantize": null
-=======
-    "quantize": "qint8"
->>>>>>> main
+    }
 }
