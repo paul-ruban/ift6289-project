@@ -1,10 +1,10 @@
 {
-    "do_train": true,
-    "model": "distilbert-base-uncased",
+    "do_train": false,
+    "model": "/content/gdrive/MyDrive/IFT6289/project/squad/bert_l_4",
     "teacher_model": null,
     "distillation_method": "soft_target",
     "dataset_name": "squad",
-    "output_dir": "../logs",
+    "output_dir": "/content/gdrive/MyDrive/IFT6289/project/squad/bert_l_4_quant",
     "evaluation_strategy": "steps",
     "eval_steps": 1000,
     "save_strategy": "steps",
@@ -19,19 +19,6 @@
     "disable_tqdm": false,
     "compute_metrics": true,
     "metric_for_best_model": "f1",
-    "pruning_config": {
-        "max_sparsity":0.3,
-        "random": {
-            "active": 0,
-            "rate": 0.01
-        },
-        "magnitude": {
-            "active": 0,
-            "number_pruned": 3
-        },
-        "head":{
-            "active": 1
-
-        }
-    }
+    "pruning_config": null,
+    "quantize": "qint8"
 }
