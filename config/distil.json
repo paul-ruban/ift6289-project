@@ -2,9 +2,9 @@
     "do_train": true,
     "model": "google/bert_uncased_L-4_H-768_A-12",
     "teacher_model": "deepset/bert-base-uncased-squad2",
-    "distillation_method": "soft_target",
+    "distillation_method": "factor_transfer",
     "dataset_name": "squad_v2",
-    "output_dir": "/content/gdrive/MyDrive/IFT6289/project/squad_v2/bert_l_4_distil",
+    "output_dir": "/content/gdrive/MyDrive/project/squad_v2/bert_l_4_factor_transfer",
     "evaluation_strategy": "steps",
     "eval_steps": 1000,
     "save_strategy": "steps",
@@ -16,7 +16,7 @@
     "per_device_eval_batch_size": 16,
     "num_train_epochs": 3,
     "weight_decay": 0.01,
-    "disable_tqdm": false,
+    "disable_tqdm": true,
     "compute_metrics": true,
     "metric_for_best_model": "f1"
 }
