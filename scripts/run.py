@@ -1,4 +1,4 @@
-# Usage: python run.py -c ../config/test.json
+# Usage: python run.py -c ../config/config.json
 # Debug: python -m debugpy --listen 5678 run.py -c ../config/config.json
 
 import os

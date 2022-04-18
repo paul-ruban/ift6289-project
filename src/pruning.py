@@ -135,7 +135,7 @@ class MultiHeadSelfAttentionGated(MultiHeadSelfAttention):
         context = context.reshape(16*12*384, 64)
 
         #Apply the gates (L0Linear returns tensor and L0 penalty)
-        context, L0penalty = L0Linear(context)[0]
+        context, L0penalty = self.gates(context)
         context = context.reshape(16,12,384,64)
 
         context = unshape(context)  # (bs, q_length, dim)
