@@ -30,7 +30,8 @@
             "number_pruned": 3
         },
         "head":{
-            "active":1
+            "active": 1
+
         }
     }
 }

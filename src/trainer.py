@@ -245,6 +245,7 @@ class SQUADTrainer(Trainer):
             self.loss_names += ["loss_distil"] 
 
         self.dataset_name = dataset_name
+############################
     
         self.pruning_config = pruning_config
         self.pruner = None
@@ -257,6 +258,17 @@ class SQUADTrainer(Trainer):
                     max_sparsity=pruning_config["max_sparsity"], 
                     pruning_config=pruning_config
                 )  
+
+        
+        self.pruning_config = pruning_config
+        self.pruner = None
+        if pruning_config is not None:
+            self.pruner = Pruner(
+                model=model, 
+                max_sparsity=80, 
+                pruning_config=pruning_config
+            )  
+####################################
 
     def train(
         self,
@@ -727,13 +739,23 @@ class SQUADTrainer(Trainer):
         """
         loss_dict = dict()
 
+        ######################################################
+        # PRUNING      
+        if self.pruner:
+            model = self.pruner.prune(model)
+
+        outputs = model(**inputs)
+
+        
         loss_total = 0.0 # sum up batch loss
         if self.pruning_config["head"]["active"]:
             outputs = model(output_attentions=True, **inputs)
             L0reg = outputs.attentions
-            loss_total += 1e-1*sum(L0reg).mean()
+            loss_total += 0.1 * sum(L0reg).mean()
         else:    
             outputs = model(**inputs)
+            
+        #############################################################
         
         loss_qa = outputs["loss"]
         loss_total += loss_qa
