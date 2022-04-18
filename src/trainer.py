@@ -731,7 +731,7 @@ class SQUADTrainer(Trainer):
         if self.pruning_config["head"]["active"]:
             outputs = model(output_attentions=True, **inputs)
             L0reg = outputs.attentions
-            loss_total += 1e-1*L0reg/(16)
+            loss_total += 1e-1*sum(L0reg).mean()
         else:    
             outputs = model(**inputs)
         
