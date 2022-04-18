@@ -141,10 +141,10 @@ class MultiHeadSelfAttentionGated(MultiHeadSelfAttention):
         context = unshape(context)  # (bs, q_length, dim)
         context = self.out_lin(context)  # (bs, q_length, dim)
 
-        # if output_attentions:
-        return (context, L0penalty)
-        # else:
-        #     return (context,)
+        if output_attentions:
+          return (context, L0penalty)
+        else:
+            return (context,)
 
 class Pruner:
   def process_modules(self, model, get_biases=0):

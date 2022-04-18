@@ -729,7 +729,8 @@ class SQUADTrainer(Trainer):
 
         loss_total = 0.0 # sum up batch loss
         if self.pruning_config["head"]["active"]:
-            outputs, L0reg = model(**inputs)
+            outputs = model(output_attentions=True, **inputs)
+            L0reg = outputs.attentions
             loss_total += 1e-1*L0reg/(16)
         else:    
             outputs = model(**inputs)
