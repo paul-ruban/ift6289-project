@@ -751,7 +751,8 @@ class SQUADTrainer(Trainer):
         
         # add regularization loss
         if "attentions" in outputs:
-            l0_loss = 0.001 * sum(outputs["attentions"]) / len(outputs["attentions"])
+            outputs["attentions"] = sum(outputs["attentions"]) / len(outputs["attentions"])
+            l0_loss = 0.001 * outputs["attentions"]
             loss_dict["l0_loss"] = l0_loss
             loss_total += l0_loss
 
@@ -829,7 +830,7 @@ class SQUADTrainer(Trainer):
             return (loss, None, None)
 
         logits = nested_detach(logits)
-        if len(logits) == 1:
+        if len(logits) == 1 or isinstance(logits, tuple):
             logits = logits[0]
 
         return (loss, logits, labels)

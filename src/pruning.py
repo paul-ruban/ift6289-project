@@ -53,7 +53,7 @@ class _L0Norm(nn.Module):
             penalty = torch.sigmoid(self.loc - self.temp * self.gamma_zeta_ratio).sum()
         else:
             s = torch.sigmoid(self.loc) * (self.zeta - self.gamma) + self.gamma
-            penalty = 0
+            penalty = torch.tensor(0.0)
         return hard_sigmoid(s), penalty
 
 
