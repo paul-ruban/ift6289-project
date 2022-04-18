@@ -26,9 +26,9 @@ def check_input_dir(input_dir):
     required_files = [
         "config.json",
         "vocab.txt",
-        # "tokenizer.json",
-        # "tokenizer_config.json",
-        # "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "special_tokens_map.json",
         "pytorch_model.bin"
     ]
     if not os.path.exists(input_dir):
@@ -75,9 +75,9 @@ def main():
     # Copy other files
     shutil.copy(os.path.join(input_dir, "config.json"), output_dir)
     shutil.copy(os.path.join(input_dir, "vocab.txt"), output_dir)
-    # shutil.copy(os.path.join(input_dir, "tokenizer.json"), output_dir)
-    # shutil.copy(os.path.join(input_dir, "tokenizer_config.json"), output_dir)
-    # shutil.copy(os.path.join(input_dir, "special_tokens_map.json"), output_dir)
+    shutil.copy(os.path.join(input_dir, "tokenizer.json"), output_dir)
+    shutil.copy(os.path.join(input_dir, "tokenizer_config.json"), output_dir)
+    shutil.copy(os.path.join(input_dir, "special_tokens_map.json"), output_dir)
 
     print("Quantized model saved to {}".format(output_dir))
 

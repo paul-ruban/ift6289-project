@@ -3,6 +3,7 @@
 
 import os
 import sys
+import json
 # Adds project to path
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_dir not in sys.path:
@@ -126,8 +127,12 @@ def main():
         trainer.train()
     
     # Evaluate model
-    trainer.evaluate()
+    final_metrics = trainer.evaluate()
 
+    # Save metrics
+    metrics_output_file = os.path.join(train_config.output_dir, "final_metrics.txt")
+    with open(metrics_output_file, "w") as f:
+        json.dump(final_metrics, f, indent=4)
 
     # Save model
     if quantized_flag:
