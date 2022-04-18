@@ -123,8 +123,7 @@ class SQUADTrainer(Trainer):
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         post_process_function: Callable = None,
         dataset_name: str = "squad",
-        pruning_config: Dict = None,
-        post_training_quantization: 0
+        pruning_config: Dict = None
     ):
         self.args = args
         # Seed must be set before instantiating the model when using model
@@ -863,6 +862,9 @@ class SQUADTrainer(Trainer):
         
         Returns:
             `Dict[str, float]`: The metrics."""
+    
+        self._move_model_to_device(self.model, self.args.device)
+
         self._memory_tracker.start()
         if eval_dataset is None:
             eval_dataset = self.eval_dataset
@@ -926,8 +928,6 @@ class SQUADTrainer(Trainer):
 
         # prediction_loss_only = prediction_loss_only if prediction_loss_only is not None else args.prediction_loss_only
 
-        if self.post_training_quantization:
-            model = torch.quantization.quantize_dynamic(model)
         model = self._wrap_model(self.model, training=False)
 
         # if full fp16 or bf16 eval is wanted and this ``evaluation`` or ``predict`` isn't called

@@ -29,4 +29,5 @@
             "number_pruned": 3
         }
     },
+    "quantize": "qint8"
 }
