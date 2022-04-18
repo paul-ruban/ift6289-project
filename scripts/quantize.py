@@ -14,6 +14,7 @@ import shutil
 
 import torch
 from transformers import AutoModelForQuestionAnswering
+from src.quantization import get_dtype
 
 
 def read_config_quant(config_path):
@@ -37,17 +38,6 @@ def check_input_dir(input_dir):
 
     if set(required_files) - set(files_in_dir):
         raise ValueError("Input directory does not contain all required files.")    
-
-    
-def get_dtype(dtype):
-    if dtype == "qint8":
-        return torch.qint8
-    elif dtype == "qint32":
-        return torch.qint32
-    elif dtype == "qint64":
-        return torch.qint64
-    else:
-        raise ValueError("Invalid dtype.")
 
 
 def main():

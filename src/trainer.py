@@ -729,7 +729,7 @@ class SQUADTrainer(Trainer):
         """
         loss_dict = dict()
 
-        if self.pruning_config["head"]["active"]:
+        if self.pruning_config and self.pruning_config["head"]["active"]:
             outputs = model(output_attentions=True, **inputs)
         else:
             outputs = model(**inputs)

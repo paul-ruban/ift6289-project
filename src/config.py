@@ -1,3 +1,4 @@
+import os
 import json
 
 
@@ -75,6 +76,9 @@ class TrainConfig:
         self.metric_for_best_model = metric_for_best_model
         self.pruning_config = pruning_config
         self.quantize = quantize
+
+        if os.path.isdir(model):
+            assert (model != output_dir), "model and output_dir cannot be the same"
 
     @classmethod
     def from_json(cls, path):
