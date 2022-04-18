@@ -8,6 +8,7 @@ project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_dir not in sys.path:
     sys.path.append(project_dir)
 
+import torch
 import argparse
 import shutil
 from functools import partial
@@ -97,18 +98,37 @@ def main():
         post_process_function=post_process_function,
         dataset_name=train_config.dataset_name,
         callbacks = [EarlyStoppingCallback(early_stopping_patience=5)],
-        pruning_config=train_config.pruning_config
+        pruning_config=train_config.pruning_config,
     )
 
     # Train model
     if train_config.do_train:
         trainer.train()
 
+    if train_config.quantize:
+        trainer.model = torch.quantization.quantize_dynamic(
+            trainer.model, 
+            dtype=get_dtype(train_config.quantize)
+        )
+    
     # Evaluate model
     trainer.evaluate()
 
+
     # Save model
     trainer.save_model()
+
+def get_dtype(dtype):
+    if dtype == "qint8":
+        return torch.qint8
+    elif dtype == "qint32":
+        return torch.qint32
+    elif dtype == "qint64":
+        return torch.qint64
+    elif dtype == "float16":
+        return torch.float16
+    else:
+        raise ValueError("Invalid dtype.")
 
 # Run main
 if __name__ == "__main__":

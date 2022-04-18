@@ -123,7 +123,7 @@ class SQUADTrainer(Trainer):
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         post_process_function: Callable = None,
         dataset_name: str = "squad",
-        pruning_config: Dict = None,
+        pruning_config: Dict = None
     ):
         self.args = args
         # Seed must be set before instantiating the model when using model
@@ -872,6 +872,9 @@ class SQUADTrainer(Trainer):
         
         Returns:
             `Dict[str, float]`: The metrics."""
+    
+        self._move_model_to_device(self.model, self.args.device)
+
         self._memory_tracker.start()
         if eval_dataset is None:
             eval_dataset = self.eval_dataset
@@ -1055,6 +1058,7 @@ class SQUADTrainer(Trainer):
 
         # Metrics!
         if self.post_process_function is not None and self.compute_metrics is not None:
+            logger.info("Computing Metrics!")
             eval_preds = self.post_process_function(
                 examples=self.eval_dataset_raw,
                 features=self.eval_features, 

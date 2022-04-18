@@ -48,7 +48,8 @@ class FactorTransfer(torch.nn.Module):
 		Returns:
 			torch.Tensor: The loss for the SoftTarget distillation method.
 		"""
-		loss = F.l1_loss(self.normalize(input), self.normalize(target), reduction="batchmean")
+		loss = F.l1_loss(self.normalize(input), self.normalize(target), reduction="none")
+		loss = loss.sum() / input.size(0)
 		return loss
 
 	def normalize(self, input):
@@ -78,7 +79,7 @@ class CorrelationCongruence(torch.nn.Module):
 		"""
 		super().__init__()
 		self.gamma = gamma
-		self.P_order = p_order
+		self.p_order = p_order
 
 	def forward(self, input, target):
 		""" Compute the loss for the SoftTarget distillation method.
@@ -93,8 +94,8 @@ class CorrelationCongruence(torch.nn.Module):
 		corr_matrix_input = self.correlation_matrix(input)
 		corr_matrix_target = self.correlation_matrix(target)
 
-		loss = F.mse_loss(corr_matrix_input, corr_matrix_target, reduction="batchmean")
-
+		loss = F.mse_loss(corr_matrix_input, corr_matrix_target, reduction="none")
+		loss = loss.sum() / input.size(0)
 		return loss
 
 	def correlation_matrix(self, x):
@@ -112,6 +113,6 @@ class CorrelationCongruence(torch.nn.Module):
 
 		for p in range(self.p_order + 1):
 			corr_matrix += math.exp(-2 * self.gamma) * (2 * self.gamma)**p / \
-						math.factorial(p) * torch.pow(corr_matrix, p)
+						math.factorial(p) * torch.pow(similarity, p)
 
 		return corr_matrix
