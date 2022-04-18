@@ -48,11 +48,11 @@ class _L0Norm(nn.Module):
         if self.training:
             self.uniform.uniform_()
             u = Variable(self.uniform)
-            s = F.sigmoid((torch.log(u) - torch.log(1 - u) + self.loc) / self.temp)
+            s = torch.sigmoid((torch.log(u) - torch.log(1 - u) + self.loc) / self.temp)
             s = s * (self.zeta - self.gamma) + self.gamma
-            penalty = F.sigmoid(self.loc - self.temp * self.gamma_zeta_ratio).sum()
+            penalty = torch.sigmoid(self.loc - self.temp * self.gamma_zeta_ratio).sum()
         else:
-            s = F.sigmoid(self.loc) * (self.zeta - self.gamma) + self.gamma
+            s = torch.sigmoid(self.loc) * (self.zeta - self.gamma) + self.gamma
             penalty = 0
         return hard_sigmoid(s), penalty
 
@@ -255,7 +255,8 @@ class Pruner:
             amount=self.pruning_config["random"]["rate"],
         )
         # make pruning permanent
-        prune.remove(modules_to_prune[0], modules_to_prune[1])
+        for module, name in modules_to_prune:
+          prune.remove(module, name)
     
     print(f"The model has been pruned!")
     return model
@@ -275,14 +276,14 @@ def L0_regularization_term(model, get_biases=1):
   return non_zeros
 
 
-def replace_layers(model, old, new):
+def replace_layers(model, old_layer_class, new_layer_obj):
     for n, module in model.named_children():
         if len(list(module.children())) > 0:
             ## compound module, go inside it
-            replace_layers(module, old, new)
+            replace_layers(module, old_layer_class, new_layer_obj)
         
-        if isinstance(module, old):
-            setattr(model, n, new.to(next(module.parameters()).device))
+        if isinstance(module, old_layer_class):
+            setattr(model, n, new_layer_obj.to(next(module.parameters()).device))
 
 
 def gate_model(model):
