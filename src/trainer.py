@@ -470,7 +470,7 @@ class SQUADTrainer(Trainer):
             for step, inputs in enumerate(epoch_iterator):
                 
                 # PRUNING    
-                if self.pruner and step % 100 == 0:
+                if self.pruner and step % self.pruning_config["every_x_step"] == 0:
                     self.model = self.pruner.prune(self.model)
 
                 # Skip past any already trained steps if resuming training

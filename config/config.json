@@ -20,6 +20,7 @@
     "compute_metrics": true,
     "metric_for_best_model": "f1",
     "pruning_config": {
+        "every_x_step":1000,
         "max_sparsity":0.3,
         "random": {
             "active": 0,
