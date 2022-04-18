@@ -280,7 +280,7 @@ def replace_layers(model, old, new):
             replace_layers(module, old, new)
         
         if isinstance(module, old):
-            setattr(model, n, new)
+            setattr(model, n, new.to(next(old.parameters()).device))
 
 
 def gate_model(model):
