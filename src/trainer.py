@@ -1009,7 +1009,8 @@ class SQUADTrainer(Trainer):
                 labels_host = labels if labels_host is None else nested_concat(labels_host, labels, padding_index=-100)
             if logits is not None:
                 logits = self._pad_across_processes(logits)
-                logits = self._nested_gather(logits)
+                # keep first two entries (drop regulrization loss)
+                logits = self._nested_gather(logits)[:2]
                 preds_host = logits if preds_host is None else nested_concat(preds_host, logits, padding_index=-100)
             self.control = self.callback_handler.on_prediction_step(args, self.state, self.control)
 
