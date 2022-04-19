@@ -133,11 +133,14 @@ def main():
         )
     
     # Evaluate model
-    trainer.evaluate()
-
-
+    eval_results = trainer.evaluate()
+    
     # Save model
-    trainer.save_model()
+    if train_config.do_train:
+      trainer.save_model()
+    else:
+      with open(os.path.join(train_config.output_dir, "distilbert_eval_results.txt"), "w") as f:
+        json.dump(eval_results, f, indent=6)
 
 
 # Run main
