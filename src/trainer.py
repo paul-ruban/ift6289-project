@@ -830,7 +830,7 @@ class SQUADTrainer(Trainer):
             return (loss, None, None)
 
         logits = nested_detach(logits)
-        if len(logits) == 1 or isinstance(logits, tuple):
+        if len(logits) == 1:
             logits = logits[0]
 
         return (loss, logits, labels)
