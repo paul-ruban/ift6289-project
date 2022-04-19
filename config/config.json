@@ -1,10 +1,10 @@
 {
     "do_train": true,
-    "model": "distilbert-base-uncased",
+    "model": "google/bert_uncased_L-4_H-768_A-12",
     "teacher_model": null,
     "distillation_method": "soft_target",
     "dataset_name": "squad",
-    "output_dir": "../logs",
+    "output_dir": "/content/gdrive/MyDrive/IFT6289/project/squad/bert_l_4_head_prune",
     "evaluation_strategy": "steps",
     "eval_steps": 1000,
     "save_strategy": "steps",
@@ -23,15 +23,15 @@
         "every_x_step":1000,
         "max_sparsity":0.3,
         "random": {
-            "active": 1,
+            "active": 0,
             "rate": 0.01
         },
         "magnitude": {
-            "active": 1,
+            "active": 0,
             "number_pruned": 3
         },
         "head":{
-            "active":0
+            "active": 1
         }
     }
 }
