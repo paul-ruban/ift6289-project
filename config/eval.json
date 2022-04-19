@@ -5,5 +5,7 @@
     "output_dir": "../logs",
     "per_device_eval_batch_size": 32,
     "disable_tqdm": false,
-    "compute_metrics": true
+    "save_strategy": "steps",
+    "compute_metrics": true,
+    "optim": "adamw_torch"
 }
