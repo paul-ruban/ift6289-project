@@ -239,24 +239,24 @@ class Pruner:
     with torch.no_grad():
       modules_to_prune = self.process_modules(model)
 
-      if self.is_prunable(modules_to_prune):
-        print("Pruning model...")
-        if self.pruning_config["magnitude"]["active"]:
-          prune.global_unstructured(
-              modules_to_prune,
-              pruning_method=prune.L1Unstructured,
-              amount=self.pruning_config["magnitude"]["number_pruned"],
-          )
-        if self.pruning_config["random"]["active"]:
-          prune.global_unstructured(
+      # if self.is_prunable(modules_to_prune):
+      print("Pruning model...")
+      if self.pruning_config["magnitude"]["active"]:
+        prune.global_unstructured(
             modules_to_prune,
-            pruning_method=prune.RandomUnstructured,
-            amount=self.pruning_config["random"]["rate"],
+            pruning_method=prune.L1Unstructured,
+            amount=self.pruning_config["magnitude"]["number_pruned"],
         )
-        # make pruning permanent
-        for module, name in modules_to_prune:
-          if prune.is_pruned(module):
-            prune.remove(module, name)
+      if self.pruning_config["random"]["active"]:
+        prune.global_unstructured(
+          modules_to_prune,
+          pruning_method=prune.RandomUnstructured,
+          amount=self.pruning_config["random"]["rate"],
+      )
+      # make pruning permanent
+      for module, name in modules_to_prune:
+        if prune.is_pruned(module):
+          prune.remove(module, name)
     
     print(f"The model has been pruned!")
     return model

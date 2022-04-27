@@ -249,14 +249,13 @@ class SQUADTrainer(Trainer):
         # set up the pruning config    
         self.pruning_config = pruning_config
         self.pruner = None
+
         if pruning_config:
             if pruning_config["head"]["active"]:
                 self.model = gate_model(self.model)
 
             if pruning_config["random"]["active"] or pruning_config["magnitude"]["active"]:
                 self.pruner = Pruner(
-                    model=self.model, 
-                    max_sparsity=pruning_config["max_sparsity"], 
                     pruning_config=pruning_config
                 )  
 
@@ -472,7 +471,7 @@ class SQUADTrainer(Trainer):
             for step, inputs in enumerate(epoch_iterator):
                 
                 # PRUNING    
-                if self.pruner and step % self.pruning_config["every_x_step"] == 0:
+                if self.pruner and step == 0:
                     self.model = self.pruner.prune(self.model)
 
                 # Skip past any already trained steps if resuming training
