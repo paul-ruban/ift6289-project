@@ -1,17 +1,26 @@
-# ift6289-project
+# ift6289-project (Model Compression for Extractive QnA)
 
-## Experiments to run
+## Repo Structure
 
-- [ ] Fine-tune models by themselves
-    - [x] Distilbert SQUAD - Pavlo
-    - [x] Distilbert SQUAD 2.0 - Pavlo
-    - [ ] Bert-base SQUAD - Johan
-    - [ ] Bert-base SQUAD 2.0 - Johan
-    - [ ] Compact BERT SQUAD [link](https://huggingface.co/google/bert_uncased_L-4_H-768_A-12) - Pavlo
-    - [ ] Compact BERT SQUAD 2.0 [link](https://huggingface.co/google/bert_uncased_L-4_H-768_A-12) - Pavlo
-- [ ] Fine-tune with distillation (3 methods), use best model from above
-    - [ ] Distilbert SQUAD - Shuo
-    - [ ] Distilbert SQUAD 2.0 - Shuo
-- [ ] Fine-tune with pruning for DistilBERT and BERT Base(2-3 methods), use best model from above - Johan
-- [ ] Quantize models using quantization methods - NO training
-- [ ] Choose best in all sections and combine in the final model
+* `config` - configuration files for training
+* `data` - contains SQUAD datasets
+* `scripts` - scrips to run training experiments (examples are included at the top of the scripts)
+* `src` - source code of the project
+
+To install the project, run:
+```
+cd ift6289-project
+source installation.sh
+```
+
+To run a training experiment, run:
+```
+cd scripts
+python run.py -c ../config/config.json
+```
+
+To quantize the model, run:
+```
+cd scripts
+python quantize.py --c ../config/quant.json
+```
